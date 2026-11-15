@@ -213,6 +213,8 @@ argument-hint: [environment]
 
 ### X4 Subagents in Claude Code
 
+**Think of it as a contractor.** Your main session is the manager; a subagent is a specialist with its own separate workspace. The manager hands over one job with a short brief, the specialist does the messy work out of sight, and only a short report comes back to the main conversation.
+
 **Decision rule.** Delegate to a subagent when the work is **self-contained**, would otherwise **flood the main context** with verbose intermediate output, or benefits from a **narrower tool set**. Don’t delegate **tightly coupled, stateful** steps.
 
 | Delegate (good fit) | Why | Keep in main session | Why |
@@ -235,6 +237,48 @@ Review the given files for injection, auth bypass and secrets in code.
 Return JSON: {"findings": [...], "files_checked": [...], "blockers": [...]}
 If you cannot check something, list it under blockers. Never guess.
 ```
+
+#### The agent file, line by line
+
+| Line | What it does |
+| --- | --- |
+| File in `.claude/agents/` | Team-shared and committed to the repo. A personal agent would go in `~/.claude/agents/`. |
+| `name` | What the agent is called |
+| `description` | **When** Claude should hand work to this helper. Claude reads it to decide, just like a tool or skill description. |
+| `tools: Read, Grep, Glob` | **Read-only:** it can look but never edit |
+| `model: sonnet` | Which model the helper runs on |
+| Body: “Review the given files…” | Its job, as its own system prompt |
+| “Return JSON…” | **Structured output:** a fixed format the main session can rely on |
+| `"blockers": [...]` | **Obstacle reporting:** if it can’t do something, it says so instead of making it up |
+
+#### How it plays out
+
+1. You edit `auth/login.py` and ask Claude to check it’s safe.
+2. The main session sees the `description` matches (“use after edits to auth”) and hands the job to `security-reviewer`.
+3. The helper reads the files in **its own** context. It can’t edit anything; it only has read tools.
+4. It returns a short structured result:
+
+```
+{"findings": ["SQL built with string concatenation in login.py line 42"],
+ "files_checked": ["auth/login.py", "auth/session.py"],
+ "blockers": ["Could not read config/secrets.yaml (permission denied)"]}
+```
+
+Your main session gets just that result, not the hundreds of lines the helper read along the way.
+
+**Why the blockers field matters.** Without it, a helper that can’t read `secrets.yaml` might quietly skip it or invent a conclusion. With it, the main session knows exactly what wasn’t checked and can follow up. This “report obstacles instead of guessing” idea is tested on the exam (practice question Q93).
+
+#### Exam signals
+
+| Question says | Answer |
+| --- | --- |
+| “Verbose output is flooding the main context” | Delegate to a subagent that returns a summary |
+| “Reusable reviewer for the whole team, read-only” | A file in `.claude/agents/` with limited `tools` |
+| “The subagent invented missing data” | Require a structured result with a **blockers** field |
+| “The subagent didn’t know what we discussed earlier” | It starts blank: put what it needs in its brief, or keep the work in the main session |
+| “Each step depends on the last” | Don’t delegate |
+
+#### Skill with `context: fork` vs subagent
 
 |  | Skill with `context: fork` | Subagent |
 | --- | --- | --- |
