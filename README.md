@@ -2,9 +2,7 @@
 
 A step-by-step study site for the **Claude Certified Architect – Foundations** exam (CCAF, exam code CCAR-F).
 
-**Study wiki (read on GitHub):** [wiki/](wiki/README.md): every module, FAQ and practice question as linked pages.
-
-**Live site:** https://ppotdar.github.io/ccaf-study-course/ (once GitHub Pages is enabled)
+**Live site:** _add your GitHub Pages URL here once Pages is enabled_
 
 ## What's inside
 

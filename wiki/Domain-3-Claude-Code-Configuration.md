@@ -2,6 +2,10 @@
 
 The most memorizable domain: which file, which folder, which flag. Most questions turn on scope (just me or the whole team) and on always-loaded versus on-demand. The six official tasks come first, then [how Claude Code works under the hood](Domain-3-Claude-Code-Configuration.md): permissions, subagents, hooks and CI flags.
 
+![Decision tree: where an instruction should live in Claude Code](images/instruction-decision-tree.svg)
+
+*Ask the questions top to bottom and stop at the first yes. Most Domain 3 traps offer the right mechanism for a different question.*
+
 ### 3.1 CLAUDE.md hierarchy
 
 | Level | Location | Shared? | Use for |
@@ -86,6 +90,10 @@ These topics sit around the six official task statements: permissions and settin
 
 Rules are checked in the order **deny → ask → allow**, so a deny rule beats an allow rule for the same action. A `PreToolUse` hook adds one more gate on top that you control with code (card X5).
 
+![Tool call flow through permissions and hooks](images/tool-call-journey.svg)
+
+*Permissions are checked in the order deny, ask, allow. Hooks then add your own code: only exit code 2 blocks.*
+
 ```
 // .claude/settings.json (shared with the team)
 {
@@ -114,7 +122,15 @@ Precedence when settings conflict: managed > command-line flags > `settings.loca
 
 ### X2 CLAUDE.md layering and keeping files out of context
 
+![CLAUDE.md layering and conflict resolution](images/claude-md-layers.svg)
+
+*Every layer is loaded. Only conflicting instructions are overridden, by the most specific file; nothing is blended.*
+
 **Exam fact: one scope model everywhere.** Every kind of Claude Code configuration follows the same two tiers: a **project** file in the repo that the team shares through git, and a **user** file in your home folder that only you get. If you know which tier a question needs, you know the file.
+
+![Where Claude Code config files go: team vs personal](images/claude-code-file-map.svg)
+
+*Every Claude Code config type has a team file in the repo and a personal file in your home folder. Pick the column first, then the row.*
 
 | What | Project: shared via git | User: personal / experimental |
 | --- | --- | --- |
@@ -137,6 +153,10 @@ Note the odd one out: MCP’s user file is `~/.claude.json` (a file in your home
 ### X3 Skill frontmatter beyond the basics
 
 **Term to know: progressive disclosure.** A skill loads in stages, so you pay context only for what’s used. The short `description` sits in context from the start (cheap). The full `SKILL.md` body loads only when the skill is triggered. Bundled files load only if the instructions call for them. This keeps the base context window lean, unlike CLAUDE.md, which loads in full every session.
+
+![Progressive disclosure of skills compared with CLAUDE.md](images/progressive-disclosure.svg)
+
+*Until a skill is triggered, only its short description costs context. That is why long, occasional procedures belong in skills.*
 
 | Stage | What loads | When | Context cost |
 | --- | --- | --- | --- |
@@ -263,6 +283,10 @@ Simplified for study: in a real hook, read the file path from the JSON on stdin 
 **Trap.** **Exit code 1 does not block.** It’s a non-blocking error, so the action still proceeds. Also: putting “always run Prettier” in CLAUDE.md (probabilistic); blocking a refund in `PostToolUse` (the tool already ran).
 
 ### X6 Claude Code SDK and CI/CD flags
+
+![Claude Code in a CI pipeline](images/ci-pipeline.svg)
+
+*Pre-approve the tools the job needs (--allowedTools), because nobody is there to answer a prompt.*
 
 **Exam fact: plan mode vs direct execution.** In plan mode, Claude explores and proposes a plan for approval *before* changing anything. Use it for **high-risk or exploratory** changes. Direct execution suits **small, well-understood, low-risk** edits. In a pipeline, `--permission-mode plan` gives you a read-only analysis run that can’t modify the repo.
 

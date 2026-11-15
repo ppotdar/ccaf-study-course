@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="292" viewBox="0 0 760 292" role="img" aria-label="The agent loops only while stop_reason is tool_use"><style>
+.svg-title{font:700 16px system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#171A2C}
+.svg-label{font:400 13px system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#171A2C;text-anchor:middle}
+.svg-label.strong{font-weight:600}
+.svg-small{font:400 11.5px ui-monospace,Menlo,Consolas,monospace;fill:#5B6179;text-anchor:middle}
+.svg-mono{font:400 12px ui-monospace,Menlo,Consolas,monospace;fill:#171A2C}
+.svg-note{font:400 11.5px system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;fill:#5B6179;text-anchor:start}
+.svg-left{text-anchor:start}.svg-mid{text-anchor:middle}
+.svg-edge{stroke:#5B6179;stroke-width:1.25}.svg-fill-edge{fill:#5B6179}
+.svg-box{fill:#FFFFFF;stroke:#5B6179;stroke-width:1.25}
+.svg-box.accent{fill:#E7EAFB;stroke:#2F43C4;stroke-width:2}
+.svg-box.soft{fill:#EEF0F7}.svg-box.dashed{stroke-dasharray:5 4}
+.svg-box.good{fill:#E3F3EA;stroke:#1E7A4E}.svg-box.bad{fill:#FBE7E5;stroke:#B4372F}
+.svg-label.good-text{fill:#1E7A4E}.svg-label.bad-text{fill:#B4372F}
+</style><rect width="760" height="292" fill="#FFFFFF"/>
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="svg-fill-edge"/></marker></defs>
+<text x="24" y="34" class="svg-title">The agent loops only while stop_reason is tool_use</text>
+<g class="svg-edge" fill="none">
+<path d="M175 100H258" marker-end="url(#arr)"/><path d="M400 100H523" marker-end="url(#arr)"/>
+<path d="M330 140V176H640V214" marker-end="url(#arr)"/><path d="M565 240H537" marker-end="url(#arr)"/>
+<path d="M385 240H357" marker-end="url(#arr)"/><path d="M205 240H177" marker-end="url(#arr)"/>
+<path d="M100 216V126" marker-end="url(#arr)"/></g>
+<rect x="25" y="76" width="150" height="48" rx="8" class="svg-box"/><text x="100" y="104" class="svg-label">Call Messages API</text>
+<polygon points="260,100 330,60 400,100 330,140" class="svg-box"/><text x="330" y="104" class="svg-label">stop_reason?</text>
+<rect x="525" y="76" width="150" height="48" rx="8" class="svg-box accent"/><text x="600" y="104" class="svg-label strong">Done: final answer</text>
+<rect x="565" y="216" width="150" height="48" rx="8" class="svg-box"/><text x="640" y="244" class="svg-label">PreToolUse hook</text>
+<rect x="385" y="216" width="150" height="48" rx="8" class="svg-box"/><text x="460" y="244" class="svg-label">Run the tool</text>
+<rect x="205" y="216" width="150" height="48" rx="8" class="svg-box"/><text x="280" y="244" class="svg-label">PostToolUse hook</text>
+<rect x="25" y="216" width="150" height="48" rx="8" class="svg-box"/><text x="100" y="244" class="svg-label">Append tool_result</text>
+<text x="462" y="90" class="svg-small">end_turn</text><text x="490" y="168" class="svg-small">tool_use</text>
+</svg>

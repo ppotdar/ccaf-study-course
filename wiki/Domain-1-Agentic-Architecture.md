@@ -14,7 +14,9 @@ while True:
     messages.append({"role": "user", "content": results})  # tool_result blocks
 ```
 
-Diagram (see the live site): the agent loop calls the API, checks stop_reason, and on tool_use passes the call through PreToolUse hook → tool → PostToolUse hook → appends tool_result and loops. The pre-call hook is where must-always rules live (block a $600 refund, redirect to escalation). The post-call hook normalizes and trims results before Claude reads them.
+![The agent loops only while stop_reason is tool_use](images/agent-loop.svg)
+
+*The pre-call hook is where must-always rules live (block a $600 refund, redirect to escalation). The post-call hook normalizes and trims results before Claude reads them.*
 
 **Concept.** An agent is a loop around the Messages API: send messages and tools, read [`stop_reason`](FAQ-stop_reason.md). If it is `"tool_use"`, run the requested tools, append `tool_result` blocks (matching each `tool_use_id`) as a user turn, and call again. If it is `"end_turn"`, the task is done. Claude decides which tool comes next, unlike a hard-coded decision tree.
 
