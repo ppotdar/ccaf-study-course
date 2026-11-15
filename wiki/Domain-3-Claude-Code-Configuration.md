@@ -217,11 +217,21 @@ argument-hint: [environment]
 
 **Decision rule.** Delegate to a subagent when the work is **self-contained**, would otherwise **flood the main context** with verbose intermediate output, or benefits from a **narrower tool set**. Don’t delegate **tightly coupled, stateful** steps.
 
-| Delegate (good fit) | Why | Keep in main session | Why |
-| --- | --- | --- | --- |
-| “Find every caller of `RefundGateway`” | Self-contained; hundreds of grep lines stay out of main context | A refactor where each edit depends on the last | Tightly coupled: steps share evolving state |
-| “Run the test suite and summarize failures” | Verbose output; only the summary matters | Debugging that needs the whole conversation so far | The subagent starts blank and would lose that context |
-| “Security-review these files” (read-only) | Benefits from a narrow, safe tool set | A one-line lookup | Spawning costs more than it saves |
+Delegate to a subagent
+
+| Job | Why |
+| --- | --- |
+| “Find every caller of `RefundGateway`” | Self-contained; hundreds of grep lines stay out of the main context |
+| “Run the test suite and summarize failures” | Verbose output; only the summary matters |
+| “Security-review these files” (read-only) | Benefits from a narrow, safe tool set |
+
+Keep in the main session
+
+| Job | Why |
+| --- | --- |
+| A refactor where each edit depends on the last | Tightly coupled: the steps share evolving state |
+| Debugging that needs the whole conversation so far | A subagent starts blank and would lose that context |
+| A one-line lookup | Spawning costs more than it saves |
 
 Quick test: could you hand this job to a contractor with a one-paragraph brief and get back a short report? Then delegate it. If the brief would need the whole conversation, or the next step depends on every detail of this one, keep it in the main session.
 
