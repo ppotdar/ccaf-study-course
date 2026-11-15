@@ -166,17 +166,44 @@ Note the odd one out: MCP’s user file is `~/.claude.json` (a file in your home
 
 Exam angles: (1) “Why move a 12-step procedure out of CLAUDE.md into a skill?” Progressive disclosure: only its description costs context until it’s needed. (2) “The skill never triggers”: Claude decides from stage 1 alone, so fix the `description`. (3) With `disable-model-invocation: true`, even the description stays out of context, because Claude never needs to decide whether to use it.
 
-| Frontmatter | Effect |
-| --- | --- |
-| `description` | When Claude should use it; drives automatic loading |
-| `disable-model-invocation: true` | Manual only: you can run `/name`, Claude can’t load it |
-| `user-invocable: false` | Background knowledge: Claude can load it, it’s hidden from the `/` menu |
-| `context: fork` | Runs in an isolated subagent; only the result returns |
-| `allowed-tools` | Tools for the skill (see note below) |
-| `argument-hint` | Shows the expected argument, e.g. `[environment]` |
-| `paths` | Glob patterns limiting automatic loading to matching files |
+#### Worked example: a deploy skill
 
-**Note on `allowed-tools`.** The exam guide describes it as restricting the tools a skill may use, so answer that way on the exam. Current Claude Code docs describe it as tools the skill may use *without asking*, with a separate `disallowed-tools` field to remove tools.
+This file sits at `.claude/skills/deploy/SKILL.md`, so anyone on the team can type `/deploy production`.
+
+```
+---
+description: Deploy the app to production. Use when asked to deploy or release.
+disable-model-invocation: true
+context: fork
+allowed-tools: Bash(npm run *)
+argument-hint: [environment]
+---
+1. Run the test suite
+2. Build the app
+3. Deploy to $ARGUMENTS
+```
+
+| Setting | Plain meaning | In the example |
+| --- | --- | --- |
+| `description` | What the skill is for and when to use it. Claude reads this to decide whether to load the skill on its own. | “Use when asked to deploy” |
+| `disable-model-invocation: true` | **Only a person can start it** by typing `/name`. Claude never runs it by itself. | Deploying is risky, so no surprise deploys |
+| `user-invocable: false` | The opposite: **hidden from you**, but Claude can load it when relevant. For background knowledge. | Not used here; e.g. “our API naming rules” |
+| `context: fork` | Runs in a separate subagent; its long output stays out of your chat and only the result comes back. | The deploy log doesn’t flood the conversation |
+| `allowed-tools` | Which tools the skill uses (see the note below). | Only `npm run` commands |
+| `argument-hint` | Shows what input it expects when you type the command. | Shows `[environment]` after `/deploy` |
+| `paths` | Only auto-loads when you’re working on matching files. | Not used here; e.g. `paths: ["infra/**"]` |
+
+#### The part people mix up: who can start the skill
+
+| Setting | Can **you** type `/name`? | Can **Claude** load it on its own? | Use for |
+| --- | --- | --- | --- |
+| (default) | Yes | Yes | Normal skills: release notes, code review |
+| `disable-model-invocation: true` | **Yes** | **No** | Risky actions: deploy, send messages, delete data |
+| `user-invocable: false` | **No** | **Yes** | Background knowledge Claude should just know |
+
+**Memory aid:** “disable *model*” means the *model* can’t start it, only you can. The two settings are mirror images; the exam trap is using one when you meant the other.
+
+**Note on `allowed-tools`.** The exam guide describes it as **restricting** the tools a skill may use, so answer that way on the exam: “this skill must only read files, never run shell commands” → `allowed-tools: Read, Grep, Glob`. Current Claude Code docs describe it as tools the skill may use *without asking*, with a separate `disallowed-tools` field to remove tools.
 
 **Concept.** Custom commands have been **merged into skills**: `.claude/commands/deploy.md` and `.claude/skills/deploy/SKILL.md` both create `/deploy`. Skills add a folder for supporting files, invocation control, and automatic loading when the `description` matches the task.
 
