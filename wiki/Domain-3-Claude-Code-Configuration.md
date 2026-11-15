@@ -217,7 +217,7 @@ argument-hint: [environment]
 
 **Decision rule.** Delegate to a subagent when the work is **self-contained**, would otherwise **flood the main context** with verbose intermediate output, or benefits from a **narrower tool set**. Don’t delegate **tightly coupled, stateful** steps.
 
-Delegate to a subagent
+#### Delegate to a subagent
 
 | Job | Why |
 | --- | --- |
@@ -225,7 +225,7 @@ Delegate to a subagent
 | “Run the test suite and summarize failures” | Verbose output; only the summary matters |
 | “Security-review these files” (read-only) | Benefits from a narrow, safe tool set |
 
-Keep in the main session
+#### Keep in the main session
 
 | Job | Why |
 | --- | --- |
