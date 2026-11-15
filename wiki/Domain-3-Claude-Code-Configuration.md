@@ -142,7 +142,7 @@ Precedence when settings conflict: managed > command-line flags > `settings.loca
 
 Note the odd one out: MCP’s user file is `~/.claude.json` (a file in your home folder), not inside `~/.claude/`. “Override or extend” on the slide means the same thing as “most specific wins”: a subdirectory file or path rule can add to the parent’s instructions, and where they conflict, the narrower one applies. Above both tiers sits the **enterprise** level, which IT manages and nobody can override.
 
-**About `.claudeignore`.** Some study material, including the slide you shared, lists `.claudeignore` for excluding files. I couldn’t find it in Claude Code’s official docs; it appears mainly in feature requests and community guides. The documented mechanism is a `deny` rule in settings. If an exam option says `.claudeignore` and no deny-rule option is offered, read it as “exclude these files from context.”
+**About `.claudeignore`.** It isn’t mentioned in Claude Code’s official docs, but exam questions sometimes ask about it. To keep files out of Claude’s context you can use either: a `deny` rule in settings, such as `Read(./.env)` (the documented way), or a `.claudeignore` file, which exam prep material describes as working like `.gitignore`. If either appears as the option for excluding files from context, it’s the right idea.
 
 **Concept.** CLAUDE.md files stack in layers: **enterprise** (managed policy file set by IT) → **user** (`~/.claude/CLAUDE.md`) → **project** (`./CLAUDE.md`) → **subdirectory**. All of them load; when instructions conflict, the [**most specific wins**](FAQ-CLAUDE.md-Precedence.md). Subdirectory files load when Claude works in that folder, and `.claude/rules/` files with `paths` load only for matching files (Task 3.3).
 
@@ -389,7 +389,7 @@ Short definitions to recognize instantly on the exam. The last column shows wher
 | Term | Meaning | Covered in |
 | --- | --- | --- |
 | **CLAUDE.md** | The layered instruction file (enterprise / user / project / subdirectory) that gives Claude Code persistent project context. All layers load; the most specific wins on conflict. | X2, Task 3.1 |
-| **.claudeignore** | Listed in study material as excluding files and folders from Claude Code’s context, like `.gitignore`. Not in the official docs; the documented equivalent is a `deny` rule such as `Read(./.env)`. | X2 |
+| **.claudeignore** | Excludes files and folders from Claude Code’s context, like `.gitignore`. Not in the official docs, but it comes up in exam questions. A `deny` rule such as `Read(./.env)` does the same job and is the documented way; either is a valid answer. | X2 |
 | **SKILL.md** | The file that defines an Agent Skill: YAML frontmatter plus instructions. Claude loads it automatically when its `description` matches the task, unless `disable-model-invocation: true`. | X3, Task 3.2 |
 | **`context: fork`** | SKILL.md frontmatter that runs the skill in an isolated subagent, so its verbose output doesn’t pollute the main session. | X3, Task 3.2 |
 | **Subagent (Claude Code)** | A delegated, separately scoped agent created via `/agents` (stored in `.claude/agents/`), running in its own context window with its own prompt and tools. | X4 |
