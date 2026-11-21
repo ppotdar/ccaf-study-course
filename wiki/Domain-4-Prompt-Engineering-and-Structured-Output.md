@@ -141,11 +141,26 @@ Because the contract sits inside `<contract>`, the line inside it reads as data 
 
 **Key idea: the standard combination for structured work.** For extraction or classification, **low temperature plus prefilling or format anchoring**, favoring consistency over creative variation.
 
-| Setting | What it controls | Use |
+#### The three sampling settings
+
+| Setting | Definition | Low value | High value |
+| --- | --- | --- | --- |
+| `temperature` | How much randomness goes into picking each next token. In the Claude API it runs from 0 to 1. | Near 0: almost always picks the most likely token, so output is consistent run to run | Near 1: less likely tokens get picked more often, so output is more varied and creative |
+| `top_p` (nucleus sampling) | Keep only the smallest set of most likely tokens whose probabilities add up to *p*, then sample from that set. | e.g. 0.5: only the few tokens that make up the top half of the probability | e.g. 0.95: everything except the unlikely long tail |
+| `top_k` | Keep only the *k* most likely tokens, then sample from those. | e.g. 1–5: very few candidates | e.g. 100+: many candidates |
+
+#### Worked example: the next word after “The sky is”
+
+Suppose the model’s probabilities for the next token are: **blue 70%**, clear 15%, grey 10%, purple 4%, banana 1%.
+
+| Setting | Tokens that can be picked | Why |
 | --- | --- | --- |
-| `temperature` | How random each token choice is | Low (near 0) for extraction and classification; higher for ideas |
-| `top_p` | Samples only from the most likely tokens whose probabilities add up to *p* | Usually tune temperature *or* top_p, not both |
-| `top_k` | Samples only from the *k* most likely tokens | Rarely needed; an advanced cap on odd choices |
+| `temperature` near 0 | blue (almost always) | The most likely token wins nearly every time |
+| `temperature` 1 | Any of the five, in proportion | Even “banana” comes up about 1 time in 100 |
+| `top_k` = 2 | blue, clear | Only the 2 most likely tokens are kept |
+| `top_p` = 0.9 | blue, clear, grey | 70 + 15 = 85% is short of 90%, so grey is added (95%); purple and banana are cut |
+
+**In practice:** adjust `temperature` and leave the others at their defaults. Anthropic recommends changing temperature *or* `top_p`, not both; `top_k` is an advanced setting you rarely need.
 
 **Note on prefilling.** The exam material treats prefilling as a standard steering technique, so answer that way. On the newest Claude models, though, a prefilled last assistant turn is no longer supported and returns an error; the replacement is structured outputs (a JSON schema in the request) or a forced tool call (Z5). Some newer models also restrict sampling settings, so check the model’s docs before relying on them.
 
@@ -243,7 +258,9 @@ Short definitions to recognize instantly on the exam. The last column shows wher
 | **Extended thinking** | A dedicated reasoning budget or mode, separate from the final answer, used for harder multi-step problems. | Z3 |
 | **Prefilling** | Seeding the start of the assistant’s response to force a format or skip an unwanted preamble. Not supported on the newest models; see the note in Z4. | Z4 |
 | **Format anchoring** | Showing the exact target output structure, so the model completes a pattern rather than inventing one. | Z4 |
-| **Temperature / top_p / top_k** | Generation settings that control randomness and diversity of output. Lower values favor consistency. | Z4 |
+| **Temperature** | How much randomness goes into picking each next token (0 to 1 in the Claude API). Near 0, the model almost always picks the most likely token, so output is consistent; higher values give more varied, creative output. | Z4 |
+| **top_p (nucleus sampling)** | Sample only from the smallest set of most likely tokens whose probabilities add up to *p*. With `top_p` 0.9, the unlikely tail that makes up the last 10% is never picked. | Z4 |
+| **top_k** | Sample only from the *k* most likely tokens. With `top_k` 2, only the top two candidates can be picked. An advanced setting, rarely needed. | Z4 |
 | **JSON mode / schema-constrained output** | Enforcing a defined JSON shape for the output, rather than relying on the model to follow an example. | Z5, Task 4.3 |
 | **Validation loop** | Checking output against the schema in code, and re-prompting or retrying on failure instead of accepting a malformed result. | Z5, Task 4.4 |
 | **Context accumulation** | The build-up of earlier turns and data across a multi-turn conversation, which degrades quality if unmanaged. | Z6, Task 5.1 |
