@@ -222,6 +222,10 @@ Which tools each agent gets, how to force a tool, and how to keep access minimal
 
 A multi-agent research system has three agents. The **search** subagent finds sources, the **synthesis** subagent writes the report, and the **coordinator** splits the work and passes results between them. Synthesis has only writing tools. While it writes, it keeps needing small checks: “Was that study 2023 or 2024?” “Is 38% the right figure?” Each check travels synthesis → coordinator → search → coordinator → synthesis, and the round trips add about 40% to the run time.
 
+![Narrow cross-role tool: verify_fact fast path versus the coordinator round trip](images/narrow-cross-role-tool.svg)
+
+*Synthesis gets one narrow lookup tool for the check it makes all the time. Anything bigger still travels through the coordinator to the search agent.*
+
 | Option | What happens | Verdict |
 | --- | --- | --- |
 | Give synthesis a narrow `verify_fact(claim, source_url)` | One lookup per call; returns confirmed, contradicted or not found. Simple checks get a fast path; anything bigger (a new subtopic, more sources, a claim that needs several searches) still goes through the coordinator. | **Right answer.** Removes the frequent round trip and keeps roles intact. |
