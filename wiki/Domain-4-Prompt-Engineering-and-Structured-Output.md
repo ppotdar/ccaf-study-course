@@ -211,6 +211,8 @@ Retry with a specific error, and never retry to force a value the source doesn't
 
 ### Z6 Multi-turn design and evaluation
 
+**Why it matters: this is where prompting meets context engineering.** This topic overlaps with Domain 5. Shaping **all** the context around a prompt (what history, facts, documents and tool output go in, and in what form), not just the prompt’s wording, is what the exam means by **production-grade** prompt engineering. See [5.1](Domain-5-Context-Management-and-Reliability.md) for keeping case facts through long conversations.
+
 #### Worked example: a regression caught before shipping
 
 The team edits the support prompt so it handles refund questions better. The evaluation set has 120 saved conversations, each graded against a rubric (correct policy, right tool, right tone).
@@ -226,7 +228,7 @@ Without the held-out set, the edit looks like a pure win. The regression only sh
 
 **Exam answer.** Treat a prompt like code: keep a test set of real cases (including past failures), score each version against a rubric, and only ship when nothing that used to pass now fails. In long conversations, carry key facts forward in a structured block and trim stale tool output (see Domain 5).
 
-**Trap.** Shipping a prompt edit because it fixed the one complaint you tested; judging a change on a handful of hand-picked examples; letting a long chat grow until early facts are lost.
+**Trap.** Shipping a prompt edit because it fixed the one complaint you tested; judging a change on a handful of hand-picked examples; letting a long chat grow until early facts are lost; fixing a context problem by rewording the prompt.
 
 ## Check yourself
 
