@@ -15,7 +15,7 @@ A step-by-step study site for the **Claude Certified Architect – Foundations**
 | 3–7. Domains | Every task statement as Concept → Exam answer → Trap, plus a quiz per domain |
 | 8. Scenario playbook | Symptom → answer pattern for all six scenarios |
 | 9. Cheat sheet | Files, flags, settings and signal words |
-| 10. Practice exam | 104 scenario questions with explanations |
+| 10. Practice exam | 106 scenario questions with explanations |
 | 11. FAQ | Deep dives on the concepts that trip people up |
 
 Progress and quiz answers are saved in your browser (localStorage) only.

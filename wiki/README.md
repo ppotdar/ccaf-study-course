@@ -22,7 +22,7 @@ Work through the pages in this order. Heavier domains come first.
 | 8 | [Scenario Playbook](Scenario-Playbook.md) | Symptom → answer for all six scenarios |
 | 9 | [Cheat Sheet](Cheat-Sheet.md) | Files, flags and signal words for exam morning |
 | 10 | [FAQ](FAQ.md) | 15 deep dives on the tricky concepts |
-| 11 | [Practice Questions](Practice-Questions.md) | 104 questions with answers and explanations |
+| 11 | [Practice Questions](Practice-Questions.md) | 106 questions with answers and explanations |
 
 ## How each domain page is written
 

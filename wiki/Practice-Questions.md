@@ -1,6 +1,6 @@
 # Practice Questions
 
-104 scenario questions grouped by domain. Try each one before opening the answer. For a scored, shuffled run, use the [practice exam on the live site](https://ppotdar.github.io/ccaf-study-course/#practice). Download: [CSV](https://github.com/ppotdar/ccaf-study-course/blob/main/ccaf_mcq_bank.csv) · [JSON](https://github.com/ppotdar/ccaf-study-course/blob/main/ccaf_mcq_bank.json)
+106 scenario questions grouped by domain. Try each one before opening the answer. For a scored, shuffled run, use the [practice exam on the live site](https://ppotdar.github.io/ccaf-study-course/#practice). Download: [CSV](https://github.com/ppotdar/ccaf-study-course/blob/main/ccaf_mcq_bank.csv) · [JSON](https://github.com/ppotdar/ccaf-study-course/blob/main/ccaf_mcq_bank.json)
 
 **Jump to:** [Domain 1](#domain-1-agentic-architecture--orchestration) · [Domain 2](#domain-2-tool-design--mcp-integration) · [Domain 3](#domain-3-claude-code-configuration--workflows) · [Domain 4](#domain-4-prompt-engineering--structured-output) · [Domain 5](#domain-5-context-management--reliability)
 
@@ -702,6 +702,40 @@ Both a GitHub server and a Jira server expose a tool named search, and Claude of
 **D.** Give each search tool a description that says what it searches and when to use it
 
 The server prefix already prevents a name clash; wrong selection is a description problem. Say what each searches (code and PRs vs tickets and comments) and when to use it.
+
+</details>
+
+**Q107** · Task 2.x Error handling · Customer Support
+
+An agent's tools return three errors in one session: a 503 from the payments API, "item out of stock" from inventory, and "not authorized" from the refunds service. Which handling is correct?
+
+- **A.** Retry all three with backoff, since any error might clear up on a later attempt
+- **B.** Retry the 503 with backoff; surface the out-of-stock and not-authorized errors without retrying
+- **C.** Escalate all three to a human immediately without retrying any of them
+- **D.** Retry the out-of-stock and not-authorized errors; report the 503 as a failure
+
+<details><summary>Show answer</summary>
+
+**B.** Retry the 503 with backoff; surface the out-of-stock and not-authorized errors without retrying
+
+Only transient errors (timeouts, 503s) can succeed on a later attempt, so they get an automatic retry with backoff. Business and permission errors won't change on retry, so they're surfaced to the user or escalated.
+
+</details>
+
+**Q108** · Task 2.x MCP transports · Developer Productivity
+
+A platform team builds an MCP server for the company's internal ticketing system. Fifty engineers will use it, and the team wants to deploy updates without touching anyone's laptop. Which transport fits?
+
+- **A.** stdio, installing the server as a local process on each engineer's laptop
+- **B.** stdio, with the server code committed to every repository that needs it
+- **C.** No MCP server; each engineer pastes ticket text into the conversation
+- **D.** A remote transport (HTTP, or SSE in older material) on a shared, centrally deployed server
+
+<details><summary>Show answer</summary>
+
+**D.** A remote transport (HTTP, or SSE in older material) on a shared, centrally deployed server
+
+stdio suits local, single-user, trusted integrations. A server shared across many users, and deployed independently of the clients, calls for a remote transport: HTTP in current docs, SSE in older study material.
 
 </details>
 

@@ -71,6 +71,8 @@ Exam questions in this domain often show a broken or weak tool definition and as
 
 ### Y1 Tool descriptions as routing
 
+**Key idea: descriptions work like a router’s decision table.** Claude reads every tool description and picks the best match. If two tools have similar descriptions, expect Claude to pick the wrong one now and then. The fix is **sharper, more distinguishing language** in the descriptions, not a longer system prompt.
+
 #### Before and after
 
 #### Weak: Claude has to guess
@@ -108,6 +110,15 @@ Says what it does, when to use it and when not, and what comes back.
 **Trap.** Treating the description as human documentation; fixing misrouting with few-shot examples or a router; reformatting a description without changing what it says.
 
 ### Y2 Tool input schema design
+
+**Exam fact: nullable fields reduce hallucination.** When a field genuinely may not apply, allowing `null` is safer than forcing the model to invent a plausible-looking value. This matters most in structured-output schemas, such as a tool used for data extraction (Task 4.3).
+
+```
+"po_number": {
+  "type": ["string", "null"],
+  "description": "Purchase order number. Use null if the document has none."
+}
+```
 
 #### Worked example: a well-designed schema
 
@@ -182,6 +193,10 @@ Says what it does, when to use it and when not, and what comes back.
 
 ### Y3 Tool error handling: categories, idempotency, partial success
 
+**Decision rule: retry only what can succeed next time.** **Transient** errors (a timeout, a 503) trigger an **automatic retry with backoff**. **Business** errors (“item out of stock”) and **permission** errors (“not authorized”) are **not retried**: surface them to the user or escalate.
+
+**Backoff** means waiting longer between each attempt, for example 1 s, then 2 s, then 4 s, with a maximum number of tries, so a struggling service isn’t hammered. Pair it with an idempotency key so the retries are safe.
+
 | Category | Example | Retry? | What the agent does |
 | --- | --- | --- | --- |
 | Transient | Timeout, 503 | Yes | Retry, ideally with the same idempotency key |
@@ -223,6 +238,8 @@ The agent can confirm the two refunds that worked and escalate only the third, r
 
 ### Y4 MCP foundations: primitives and transports
 
+**Key idea: choose the transport by who shares the server.** **stdio** is simplest for **local, single-user, trusted** integrations, such as tools on a developer’s own machine. A **remote** transport (SSE in study material, HTTP in current docs) fits when the server must be **shared across users or sessions**, or **deployed independently** of the client.
+
 | Primitive | Controlled by | What it is | Example |
 | --- | --- | --- | --- |
 | **Tools** | The model | Actions Claude can call | `create_issue`, `process_refund` |
@@ -245,6 +262,8 @@ The agent can confirm the two refunds that worked and escalate only the third, r
 
 ### Y5 Tool authorization and least privilege
 
+**Exam trap: the model as the only safeguard.** Relying on the model’s good judgment as the *only* protection against an over-privileged tool is a wrong-answer pattern. The exam consistently rewards enforcing least privilege at the **host and permission layer**, not through prompting alone.
+
 | Integration | Credential | Scope |
 | --- | --- | --- |
 | Order lookup | `ORDERS_READ_TOKEN` | Read orders only |
@@ -261,6 +280,8 @@ The agent can confirm the two refunds that worked and escalate only the third, r
 **Trap.** A prompt line such as “never delete records” as the only protection; one admin token shared by every MCP server; trusting the model’s arguments without server-side validation.
 
 ### Y6 Advanced MCP: scopes, overlapping names, environment variables
+
+**Exam fact: duplicate tool names are a real production failure.** With several MCP servers connected, ambiguous or duplicate tool names across servers lead to wrong calls. **Namespace or disambiguate tool names before deploying** a multi-server setup. Claude Code namespaces automatically (`mcp__github__search`); in your own agent, give tools unique names such as `github_search` and `jira_search`, plus distinct descriptions.
 
 | Scope | Stored in | Loads in | Shared via git |
 | --- | --- | --- | --- |
