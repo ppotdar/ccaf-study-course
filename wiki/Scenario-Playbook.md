@@ -13,6 +13,34 @@ The exam draws 4 of these 6 scenarios at random, and every question sits inside 
 | **5. Claude Code for CI/CD** | Claude Code runs unattended in a pipeline: automated code review, test generation and PR comments. | 3, 4 | Non-interactive flags (`-p`, `--output-format json`, `--json-schema`, allowed tools) · cutting noisy or false-positive findings with explicit criteria · duplicate comments on re-runs · independent review vs self-review · Batch API vs real-time for cost |
 | **6. Structured Data Extraction** | Unstructured documents (invoices, contracts, forms) are turned into JSON that matches a schema and is validated. | 4, 5 | Forcing the schema with tool use and `tool_choice` · nullable fields vs invented values · validation-and-retry loops and when to stop retrying · few-shot examples for varied formats · measuring accuracy per document type and routing to human review |
 
+## Each scenario in a picture
+
+What each system looks like, with the recommended design in green. These are the shapes the right answers keep pointing to.
+
+![Customer support agent with gates, hooks and structured handoff](images/scenario-1-support.svg)
+
+*The agent works through four MCP tools. Policies that must always hold sit in code next to the tools; the case-facts block keeps key numbers alive in long chats.*
+
+![Where Claude Code instructions go, and plan mode for big changes](images/scenario-2-codegen.svg)
+
+*Pick the file by who needs the instruction and where it applies. The personal file (shaded) is never shared, which is why teammates miss instructions placed there.*
+
+![Multi-agent research system with coordinator and three subagents](images/scenario-3-research.svg)
+
+*The coordinator owns the split and the routing. Each subagent gets structured inputs, reports errors with context, and keeps claim-to-source links so the final report can cite and date every figure.*
+
+![Exploring a legacy codebase with built-in tools](images/scenario-4-devprod.svg)
+
+*Start narrow with Grep, read only what the trail leads to, and protect your context on long explorations. Glob finds files by name; Grep searches inside them.*
+
+![Claude Code in a CI pipeline](images/scenario-5-cicd.svg)
+
+*In CI, Claude Code must run without prompts and return machine-readable output. Quality comes from explicit criteria and an independent reviewer, not from asking it to be more careful.*
+
+![Structured extraction with schema, validation and retry](images/scenario-6-extraction.svg)
+
+*The schema guarantees shape; validation checks meaning. Retry only when the error is fixable, and never let the model invent a value the document doesn't contain.*
+
 ## Symptom → answer, by scenario
 
 | Scenario | Symptom in the question | Answer pattern | Task |
