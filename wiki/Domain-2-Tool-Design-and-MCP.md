@@ -370,6 +370,19 @@ Claude Code prefixes each MCP tool with its server name, so a `search` tool on t
 
 **Example:** A database schema browsed via 30 `describe_table` calls.
 
+## Key terminology
+
+Short definitions to recognize instantly on the exam. The last column shows where each term is covered in depth.
+
+| Term | Meaning | Covered in |
+| --- | --- | --- |
+| **MCP (Model Context Protocol)** | An open standard for connecting AI models to external tools, resources and prompt templates in a consistent way. One protocol, many servers. | Y4, Task 2.4 |
+| **Tool schema** | The JSON definition of a tool: its `name`, `description` and `input_schema`. Claude uses it to decide whether and how to call the tool. | Y2 |
+| **Enum constraint** | Restricting a parameter to a fixed set of valid values, e.g. `"enum": ["damaged", "late", "other"]`. Reduces malformed or unpredictable tool calls. | Y2 |
+| **Nullable field** | A schema field allowed to be `null` when it doesn’t apply, e.g. `"type": ["string", "null"]`. Reduces pressure on the model to invent a value. | Y2, Task 4.3 |
+| **Idempotency** | Calling a tool again with the same input produces the same result with no extra side effects, so it’s safe to retry. Usually done with an idempotency key. | Y3 |
+| **Partial success** | A response that reports which parts of a multi-part action succeeded and which failed, instead of one pass/fail result. | Y3 |
+
 ## Check yourself
 
 This domain's interactive quiz is on the [live site](https://ppotdar.github.io/ccaf-study-course/#d2). The same questions, with answers, are on [Practice Questions](Practice-Questions.md).
