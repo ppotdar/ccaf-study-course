@@ -218,6 +218,21 @@ Which tools each agent gets, how to force a tool, and how to keep access minimal
 
 **Trap.** Giving synthesis full web search to cut latency; one mega-agent with every tool.
 
+#### Worked example: the fact-check bottleneck
+
+A multi-agent research system has three agents. The **search** subagent finds sources, the **synthesis** subagent writes the report, and the **coordinator** splits the work and passes results between them. Synthesis has only writing tools. While it writes, it keeps needing small checks: “Was that study 2023 or 2024?” “Is 38% the right figure?” Each check travels synthesis → coordinator → search → coordinator → synthesis, and the round trips add about 40% to the run time.
+
+| Option | What happens | Verdict |
+| --- | --- | --- |
+| Give synthesis a narrow `verify_fact(claim, source_url)` | One lookup per call; returns confirmed, contradicted or not found. Simple checks get a fast path; anything bigger (a new subtopic, more sources, a claim that needs several searches) still goes through the coordinator. | **Right answer.** Removes the frequent round trip and keeps roles intact. |
+| Give synthesis full web search “to cut latency” | Synthesis starts researching mid-report, drifts off-topic and duplicates the search agent. The coordinator loses track of what was searched and why. | Trap: two agents doing one job. |
+| Merge everything into one agent with every tool | No more round trips, but about 18 tools: more misrouting, tools misused outside their specialty, harder to debug. | Trap: removes the bottleneck by removing the architecture. |
+| Keep routing every check through the coordinator | Correct and clean, but the latency stays. | Works, but doesn’t fix the problem asked about. |
+
+**Rule of thumb.** A need that is **frequent and simple** gets a narrow, single-purpose tool on the agent that needs it. A need that is **rare or complex** goes through the coordinator. On the exam, look for a question about latency from frequent, simple requests between agents: the right answer adds the smallest possible tool and leaves the coordinator in charge of everything else.
+
+**Memory aid:** give the writer a dictionary for the desk, not the keys to the research library. Quick checks happen at the desk; real research still goes through the editor. See also Rule 6, “Fewer, scoped tools per agent.”
+
 ### Y5 Tool authorization and least privilege
 
 **Exam trap: the model as the only safeguard.** Relying on the model’s good judgment as the *only* protection against an over-privileged tool is a wrong-answer pattern. The exam consistently rewards enforcing least privilege at the **host and permission layer**, not through prompting alone.
