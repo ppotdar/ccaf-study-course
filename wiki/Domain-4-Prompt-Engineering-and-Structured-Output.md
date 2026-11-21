@@ -245,6 +245,19 @@ Without the held-out set, the edit looks like a pure win. The regression only sh
 
 **Trap.** Shipping a prompt edit because it fixed the one complaint you tested; judging a change on a handful of hand-picked examples; letting a long chat grow until early facts are lost; fixing a context problem by rewording the prompt.
 
+## Exam scenario lens: where this domain shows up
+
+Prompting and structured output show up in all six scenarios. For each one: how the domain appears, a typical question, and the answer.
+
+| Scenario | How this domain appears | Typical question | Answer |
+| --- | --- | --- | --- |
+| **Structured Data Extraction** | Schema-constrained output plus a validation and retry loop: the core production pattern | “Output is valid JSON, but line items don’t add up to the total.” | Keep the schema; add a validation check in code and retry with the specific error (Z5, 4.4) |
+| **Customer Support Resolution Agent** | System prompt defines role and scope; few-shot examples for ticket classification | “Tickets like ‘charged twice, now locked out’ get a different category each run.” | Add 2–4 few-shot examples of the ambiguous tickets; keep role and limits in the system prompt (Z1, Z3) |
+| **Code Generation with Claude Code** | Chain-of-thought or extended thinking for genuinely multi-step reasoning | “A multi-file refactor plan misses a dependency; quick renames are already right.” | Extended thinking for the refactor plan only; not for simple lookups, where it just adds latency and cost (Z3) |
+| **Multi-Agent Research System** | XML-tagged prompts that separate instructions from the reference documents injected into each subagent | “A subagent followed a sentence inside a source document as if it were an instruction.” | Wrap instructions and each document in their own tags; refer to the tags in the task (Z2) |
+| **Developer Productivity** | Prompt evaluation with regression tests before shipping a modified system prompt | “A system-prompt tweak fixed one complaint. What should happen before it rolls out to the team?” | Run the fixed test set and ship only if no previously passing case fails (Z6) |
+| **Claude Code for CI/CD** | Low-temperature, format-anchored output so CI results are machine-parseable | “The pipeline’s parser breaks because review output varies run to run.” | Low temperature plus an anchored or schema-enforced output format, e.g. `--json-schema` (Z4, Z5) |
+
 ## Key terminology
 
 Short definitions to recognize instantly on the exam. The last column shows where each term is covered in depth.
