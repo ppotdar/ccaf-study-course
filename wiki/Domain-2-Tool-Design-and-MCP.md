@@ -320,6 +320,19 @@ Claude Code prefixes each MCP tool with its server name, so a `search` tool on t
 
 **Trap.** Hard-coding tokens in `.mcp.json`; putting personal experimental servers in the shared project file; assuming settings for the same server merge across scopes (the highest-precedence entry is used whole); connecting every available server “just in case”, which makes tool selection less reliable.
 
+## Exam scenario lens: where this domain shows up
+
+Tool design and MCP show up in all six scenarios, not just the agent ones.
+
+| Scenario | How this domain appears | Typical question | Answer |
+| --- | --- | --- | --- |
+| **Structured Data Extraction** | Tool schema design with enums, constraints and nullable fields to reduce hallucinated output | “Extraction invents PO numbers for documents that don’t have one.” | Make the field nullable; use enums for categories (Y2) |
+| **Customer Support Resolution Agent** | Structured errors (transient / business / permission) driving retry vs escalate | “The agent retries a refund the policy blocks, five times.” | Return `errorCategory: business`, `isRetryable: false`; explain or escalate (Y3) |
+| **Multi-Agent Research System** | Multiple MCP servers with overlapping tools; disambiguation and least-privilege scoping per subagent | “Synthesis calls the wrong search tool, and has tools it shouldn’t.” | Distinct names and descriptions; scope each subagent’s tools to its role (Y5, Y6) |
+| **Code Generation with Claude Code** | Local stdio MCP servers for dev-machine tools; project vs user MCP scope | “Every developer should get the team’s DB server; one dev wants to try another.” | Team server in `.mcp.json`; the experiment in user/local scope (Y4, Y6) |
+| **Claude Code for CI/CD** | Idempotent tool calls so pipeline retries don’t cause duplicate side effects | “A rerun pipeline posted every PR comment twice.” | Make the posting tool idempotent (a key per finding) so reruns are safe (Y3) |
+| **Developer Productivity** | Precise tool descriptions so Claude routes to the right internal tool | “The agent uses Grep instead of the semantic code_search tool.” | Rewrite code_search’s description: what, when, what it returns (Y1) |
+
 ## Common exam traps
 
 **Trap 1:** **Fixing wrong-tool selection with few-shot examples or a router.**
