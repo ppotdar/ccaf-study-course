@@ -382,6 +382,12 @@ Short definitions to recognize instantly on the exam. The last column shows wher
 | **Nullable field** | A schema field allowed to be `null` when it doesn’t apply, e.g. `"type": ["string", "null"]`. Reduces pressure on the model to invent a value. | Y2, Task 4.3 |
 | **Idempotency** | Calling a tool again with the same input produces the same result with no extra side effects, so it’s safe to retry. Usually done with an idempotency key. | Y3 |
 | **Partial success** | A response that reports which parts of a multi-part action succeeded and which failed, instead of one pass/fail result. | Y3 |
+| **Transient error** | A temporary failure (timeout, rate limit, 503) that is generally safe to **retry with backoff**. | Y3, Task 2.2 |
+| **Business error** | A failure caused by domain rules (e.g. out of stock, refund over the limit). Not a bug, and a retry won’t fix it: explain or escalate. | Y3, Task 2.2 |
+| **Permission error** | A failure due to insufficient authorization. Surface or escalate it; never retry it silently. | Y3, Task 2.2 |
+| **stdio transport** | A local MCP transport: the server runs as a subprocess on the same machine as the client. Simple and single-user. | Y4 |
+| **SSE transport** | A remote MCP transport that lets one server be shared across users and sessions, deployed independently of the client. Current Claude Code docs mark SSE as deprecated in favour of HTTP; both mean “remote” on the exam. | Y4 |
+| **Principle of least privilege** | Granting a tool or agent only the minimum access its specific task needs, **enforced at the host layer**, not by prompting. | Y5 |
 
 ## Check yourself
 
