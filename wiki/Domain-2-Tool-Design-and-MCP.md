@@ -335,49 +335,69 @@ Tool design and MCP show up in all six scenarios, not just the agent ones.
 
 ## Common exam traps
 
-**Trap 1:** **Fixing wrong-tool selection with few-shot examples or a router.**
+The first four come from your slide deck; the rest come up repeatedly elsewhere in this domain.
+
+**Trap 1:** **Retrying a business error (e.g. “insufficient inventory”) automatically, like a timeout.**
+
+**Why it’s wrong:** Only transient errors should auto-retry, with backoff. Business and permission errors need surfacing or escalation, not repetition.
+
+**Example:** Five retries of “out of stock” just produce five identical failures.
+
+**Trap 2:** **Two tools with near-identical descriptions offered as an acceptable design.**
+
+**Why it’s wrong:** Overlapping descriptions cause wrong-tool routing. Descriptions must clearly differentiate purpose and scope.
+
+**Example:** `analyze_content` and `analyze_document`, both “Analyzes text.”
+
+**Trap 3:** **Using a single broad credential shared across many tools “for simplicity.”**
+
+**Why it’s wrong:** Least privilege means scoping credentials and permissions per tool or integration, not sharing one broad grant.
+
+**Example:** A read-only review agent holding the same admin GitHub token as the deploy tool.
+
+**Trap 4:** **Choosing SSE for a simple, single-user, local dev integration.**
+
+**Why it’s wrong:** stdio is the simpler, correct choice for local single-user cases; keep remote transports (SSE, or HTTP in current docs) for shared or remote deployments.
+
+**Example:** A server that reads files on your own laptop → stdio.
+
+**Trap 5:** **Fixing wrong-tool selection with few-shot examples or a router.**
 
 **Why it’s wrong:** Descriptions are the routing signal. Rewrite them: what, when (and when not), what it returns.
 
 **Example:** “Agent calls get_customer for order questions” → improve both descriptions.
 
-**Trap 2:** **Accepting free text and validating afterwards.**
+**Trap 6:** **Accepting free text and validating afterwards.**
 
 **Why it’s wrong:** Constrain inputs in the schema: enums, patterns, min/max, formats.
 
 **Example:** `"reason": {"type": "string"}` → an enum with `"other"`.
 
-**Trap 3:** **Making every parameter required.**
+**Trap 7:** **Making every parameter required.**
 
 **Why it’s wrong:** Required fields push Claude to invent values. Require only what the tool can’t work without, and state defaults for the rest.
 
 **Example:** Optional `limit` → “defaults to 20.”
 
-**Trap 4:** **Retrying a write that isn’t idempotent.**
+**Trap 8:** **Retrying a write that isn’t idempotent.**
 
 **Why it’s wrong:** A timeout doesn’t mean the action failed. Use an idempotency key so repeats are safe.
 
 **Example:** A retried refund pays the customer twice.
 
-**Trap 5:** **Returning all-or-nothing results for batch tools.**
+**Trap 9:** **Returning all-or-nothing results for batch tools.**
 
 **Why it’s wrong:** Report what succeeded and what failed, each failure with its category.
 
 **Example:** 9 of 10 refunds worked; escalate just the tenth.
 
-**Trap 6:** **Trusting the model to respect a security boundary.**
+**Trap 10:** **Trusting the model to respect a security boundary.**
 
 **Why it’s wrong:** Scope credentials and validate on the server; the model’s choices can be manipulated.
 
 **Example:** “Never delete” in the prompt, but the token can delete.
 
-**Trap 7:** **One broad credential shared by every tool.**
-
-**Why it’s wrong:** Scope credentials per integration and per role.
-
-**Example:** A read-only review agent holding an admin GitHub token.
-
-**Trap 8:** **Exposing a read-only catalog as many tools.**
+**Trap 11:** **Exposing a read-only catalog as many tools.**
 
 **Why it’s wrong:** Use an MCP resource so the agent can see what exists without exploratory calls.
 
