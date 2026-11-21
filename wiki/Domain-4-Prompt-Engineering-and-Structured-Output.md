@@ -2,7 +2,7 @@
 
 How to get precise, parseable, trustworthy output at production scale: clear system prompts, well-structured prompts, few-shot and chain-of-thought, output steering, schema-constrained output, and prompt evaluation. This is prompting for pipelines, not chat.
 
-**How this domain is tested.** Expect scenario questions about **why a prompt fails**, not prompting syntax trivia. Schema-constrained output and prompt evaluation are increasingly tested. The six official task statements (4.1–4.6) come first; [six deeper cards](Domain-4-Prompt-Engineering-and-Structured-Output.md) (Z1–Z6) follow.
+**How this domain is tested.** Expect scenario questions about **why a prompt fails**, not prompting syntax trivia. Schema-constrained output and prompt evaluation are increasingly tested. The six official task statements (4.1–4.6) come first; [six deeper cards](Domain-4-Prompt-Engineering-and-Structured-Output.md) (Z1–Z6) follow, then the [scenario lens](Domain-4-Prompt-Engineering-and-Structured-Output.md), [exam traps](Domain-4-Prompt-Engineering-and-Structured-Output.md) and [key terms](Domain-4-Prompt-Engineering-and-Structured-Output.md).
 
 ### 4.1 Explicit criteria
 
@@ -257,6 +257,64 @@ Prompting and structured output show up in all six scenarios. For each one: how 
 | **Multi-Agent Research System** | XML-tagged prompts that separate instructions from the reference documents injected into each subagent | “A subagent followed a sentence inside a source document as if it were an instruction.” | Wrap instructions and each document in their own tags; refer to the tags in the task (Z2) |
 | **Developer Productivity** | Prompt evaluation with regression tests before shipping a modified system prompt | “A system-prompt tweak fixed one complaint. What should happen before it rolls out to the team?” | Run the fixed test set and ship only if no previously passing case fails (Z6) |
 | **Claude Code for CI/CD** | Low-temperature, format-anchored output so CI results are machine-parseable | “The pipeline’s parser breaks because review output varies run to run.” | Low temperature plus an anchored or schema-enforced output format, e.g. `--json-schema` (Z4, Z5) |
+
+## Common exam traps
+
+The first four come from the slide deck; the rest come up repeatedly elsewhere in this domain.
+
+**Trap 1:** **Reaching for chain-of-thought or extended thinking on a simple lookup or formatting task.**
+
+**Why it’s wrong:** Extra reasoning steps add latency and cost without benefit when the task has no real multi-step logic.
+
+**Example:** Turning on extended thinking to reformat dates as ISO 8601. (Z3)
+
+**Trap 2:** **Assuming schema-constrained output alone guarantees correctness.**
+
+**Why it’s wrong:** Pair schema enforcement with a validation and retry loop: ambiguous instructions can still cause drift inside a valid schema.
+
+**Example:** Valid JSON whose line items sum to 410 while `total` says 450. (Z5, 4.4)
+
+**Trap 3:** **Mixing instructions, reference data and examples in one unstructured paragraph.**
+
+**Why it’s wrong:** Use XML tags or clear structural sections so the model can tell instruction from data from example.
+
+**Example:** A sentence inside a pasted contract gets followed as an instruction. (Z2)
+
+**Trap 4:** **Shipping a prompt edit without regression testing against the full test set.**
+
+**Why it’s wrong:** A change that fixes one scenario can silently break another. Regression testing is the safeguard, not spot-checking.
+
+**Example:** Refund cases go from 21 to 29 passing, while shipping cases drop from 48 to 41. (Z6)
+
+**Trap 5:** **Fixing inconsistent output with emphasis (“BE CAREFUL”, “only high-confidence”).**
+
+**Why it’s wrong:** Vague or emphatic instructions don’t change behavior reliably. State exactly what to report and what to skip.
+
+**Example:** “Report only bugs and security issues; skip style and naming.” (Z1, 4.1)
+
+**Trap 6:** **Adding more few-shot examples to fix a reasoning error.**
+
+**Why it’s wrong:** Examples teach format and judgment calls, not multi-step logic. Use chain-of-thought for reasoning errors.
+
+**Example:** A wrong refund amount from a three-rule policy calculation. (Z3)
+
+**Trap 7:** **Using a high temperature for extraction or classification.**
+
+**Why it’s wrong:** Structured work favors consistency: low temperature plus format anchoring or an enforced schema.
+
+**Example:** The same invoice gets a different category on each run. (Z4)
+
+**Trap 8:** **Making every schema field required “for completeness.”**
+
+**Why it’s wrong:** Required fields push the model to invent values. Make fields that may be absent nullable.
+
+**Example:** An invented PO number for an invoice that doesn’t have one. (4.3)
+
+**Trap 9:** **Retrying blindly with the same prompt, or until a value appears.**
+
+**Why it’s wrong:** Retry with the specific error. If the value isn’t in the source, stop: return null and route to review.
+
+**Example:** Five retries that each produce a different made-up due date. (4.4)
 
 ## Key terminology
 
