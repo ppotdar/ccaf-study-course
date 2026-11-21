@@ -1,6 +1,19 @@
 # Scenario playbook
 
-Each scenario has a handful of recurring problems. If you can answer the right-hand columns from memory, you are ready for that scenario.
+The exam draws 4 of these 6 scenarios at random, and every question sits inside one of them. Start with what each scenario is and the kinds of questions it asks, then drill the recurring symptoms below. If you can answer the right-hand columns from memory, you are ready for that scenario.
+
+## The six scenarios at a glance
+
+| Scenario | The setup | Main domains | Types of questions |
+| --- | --- | --- | --- |
+| **1. Customer Support Resolution Agent** | An Agent SDK agent with MCP tools `get_customer`, `lookup_order`, `process_refund` and `escalate_to_human`. Target: 80%+ first-contact resolution. | 1, 2, 5 | Enforcing must-follow policies (identity check, refund limits) with hooks or gates rather than prompts · tool misrouting · when and how to escalate to a human · keeping case facts through long chats · structured tool errors |
+| **2. Code Generation with Claude Code** | A team uses Claude Code day to day, with CLAUDE.md files, slash commands and plan mode. | 3, 5 | Which file and scope an instruction belongs in (CLAUDE.md levels, `.claude/rules/` with `paths`) · team commands and skills · plan mode vs direct execution · fixing output with concrete examples or tests · context in long sessions |
+| **3. Multi-Agent Research System** | A coordinator delegates to search, document-analysis and synthesis subagents, then assembles a cited report. | 1, 2, 5 | Diagnosing gaps (coordinator decomposition vs a weak subagent) · what context to pass to subagents · which tools each agent gets (e.g. `verify_fact`) · passing errors up to the coordinator · keeping citations and handling conflicting sources |
+| **4. Developer Productivity** | Engineers explore and change an unfamiliar legacy codebase with Read, Write, Edit, Bash, Grep, Glob and MCP tools. | 2, 3, 1 | Picking the right built-in tool (Grep vs Glob vs Read/Edit) · exploring incrementally · why the agent ignores a better MCP tool · answers drifting in long explorations (subagents, scratchpad, `/compact`) · resume vs fork vs a fresh session |
+| **5. Claude Code for CI/CD** | Claude Code runs unattended in a pipeline: automated code review, test generation and PR comments. | 3, 4 | Non-interactive flags (`-p`, `--output-format json`, `--json-schema`, allowed tools) · cutting noisy or false-positive findings with explicit criteria · duplicate comments on re-runs · independent review vs self-review · Batch API vs real-time for cost |
+| **6. Structured Data Extraction** | Unstructured documents (invoices, contracts, forms) are turned into JSON that matches a schema and is validated. | 4, 5 | Forcing the schema with tool use and `tool_choice` · nullable fields vs invented values · validation-and-retry loops and when to stop retrying · few-shot examples for varied formats · measuring accuracy per document type and routing to human review |
+
+## Symptom → answer, by scenario
 
 | Scenario | Symptom in the question | Answer pattern | Task |
 | --- | --- | --- | --- |
