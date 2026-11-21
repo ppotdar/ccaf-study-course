@@ -1,6 +1,6 @@
 # Domain 2: Tool Design & MCP Integration
 
-How to make Claude pick the right tool, recover from tool failures, and wire MCP servers into a team setup.
+How to make Claude pick the right tool, recover from tool failures, and wire MCP servers into a team setup. The five task statements come first, then [deeper cards](Domain-2-Tool-Design-and-MCP.md) on schema design, idempotency, MCP primitives and transports, least privilege, and production MCP.
 
 ### 2.1 Tool interfaces and descriptions
 
@@ -64,6 +64,290 @@ How to make Claude pick the right tool, recover from tool failures, and wire MCP
 **Exam answer.** Explore incrementally: Grep for entry points, then Read to follow the flow. To trace usage through wrapper modules, find the exported name and Grep for it. When Edit's anchor text is not unique, Read the file and Write it back.
 
 **Trap.** [Glob to search code text; Grep to find files by name](FAQ-Grep-Glob-Read.md); reading every file up front.
+
+## Going deeper: designing tools Claude uses well
+
+Exam questions in this domain often show a broken or weak tool definition and ask you to spot the flaw, so precision on schema anatomy matters more than breadth. These six cards go deeper than the task statements above.
+
+### Y1 Tool descriptions as routing
+
+#### Before and after
+
+#### Weak: Claude has to guess
+
+```
+{
+  "name": "lookup_order",
+  "description": "Looks up orders."
+}
+```
+
+Which orders? From what input? Returns what? It also overlaps with `list_orders` and `get_customer`.
+
+#### Strong: Claude can route
+
+```
+{
+  "name": "lookup_order",
+  "description": "Get the status, items and delivery date of ONE order. Use when the customer gives an order number (e.g. #48812) or asks where a specific order is. Not for account details (use get_customer) or all orders (use list_orders). Returns: status, items, amount, shipped_at, delivered_at."
+}
+```
+
+Says what it does, when to use it and when not, and what comes back.
+
+| Part | Answers the question | Example phrase |
+| --- | --- | --- |
+| What it does | What does this tool actually do? | “Get the status, items and delivery date of ONE order” |
+| When to use it (and not) | Is this the right tool for this request? | “Use when the customer gives an order number… Not for account details (use get_customer)” |
+| What it returns | Will the result answer the question? | “Returns: status, items, amount, shipped_at, delivered_at” |
+
+**Concept.** The `description` is the main signal Claude uses to decide **which** tool to call and **when**. Vague or overlapping descriptions cause **wrong-tool selection**, not just untidy docs. A good description states three things: what the tool does, when to use it (and when not to), and what it returns.
+
+**Exam answer.** Rewrite the description to cover all three parts, and name the neighbouring tool explicitly: “For account details, use `get_customer`.”
+
+**Trap.** Treating the description as human documentation; fixing misrouting with few-shot examples or a router; reformatting a description without changing what it says.
+
+### Y2 Tool input schema design
+
+#### Worked example: a well-designed schema
+
+```
+{
+  "name": "process_refund",
+  "description": "Refund all or part of ONE verified order.
+    Use only after get_customer has verified the customer.
+    Returns refund_id and status.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "order_id": {
+        "type": "string",
+        "pattern": "^ORD-[0-9]{6}$",
+        "description": "Order ID, e.g. ORD-048812"
+      },
+      "amount": {
+        "type": "number",
+        "minimum": 0.01,
+        "maximum": 500,
+        "description": "Refund amount in USD"
+      },
+      "reason": {
+        "type": "string",
+        "enum": ["damaged", "late", "wrong_item",
+                 "duplicate_charge", "other"]
+      },
+      "reason_detail": {
+        "type": "string",
+        "maxLength": 200,
+        "description": "Required when reason is 'other'"
+      },
+      "notify_customer": {
+        "type": "boolean",
+        "default": true,
+        "description": "Email the customer. Defaults to true."
+      }
+    },
+    "required": ["order_id", "amount", "reason"]
+  }
+}
+```
+
+| Field | Design choice | Why |
+| --- | --- | --- |
+| `order_id` | `pattern` + example in the description | Rejects malformed IDs before the call; shows Claude the exact format |
+| `amount` | `number` with `minimum` / `maximum` | No negative or oversized refunds slip through as text |
+| `reason` | `enum` with `"other"` | A fixed set of values downstream systems can rely on, with room for new cases |
+| `reason_detail` | Optional, `maxLength`, says when it’s needed | Captures the extra context only when it’s useful |
+| `notify_customer` | Optional with `default: true` | Claude can leave it out and the behaviour is still predictable |
+| `required` | Only the three fields the refund can’t work without | Nothing forces Claude to make up a value |
+
+**The schema guides Claude; the server still checks.** Constraints such as `maximum: 500` help Claude form valid calls, but the server (or a hook) must validate too. Never rely on the model alone for a hard limit ([card Y5](Domain-2-Tool-Design-and-MCP.md)).
+
+#### Spot the flaw
+
+| Flawed definition | Fix |
+| --- | --- |
+| `"reason": { "type": "string" }` | An `enum` of allowed reasons, plus `"other"` and a detail field |
+| `"date": { "type": "string" }` | State the format: “ISO 8601, YYYY-MM-DD” (or `"format": "date"`) |
+| All eight fields in `required` | Require only what the tool truly can’t work without |
+| `"limit"` optional, no default stated | “Defaults to 20 if omitted” |
+| Both `id` and `order_id` parameters | One clearly named parameter |
+| `name: "handle"`, `description: "Handles requests"` | A specific verb_object name and a three-part description |
+
+**Concept.** A tool definition has three parts: a **`name`** (a clear verb_object such as `process_refund`), a **`description`**, and an **`input_schema`** in JSON Schema. Use **enums and constraints** to narrow valid inputs up front instead of accepting free text and validating afterwards. Mark parameters **required or optional deliberately**, and give every optional field a sensible, stated default.
+
+**Exam answer.** Free-text categories become an `enum` (plus `"other"` and a detail field); amounts become numbers with `minimum`/`maximum`; IDs get a `pattern`; dates say their format; optional fields say what happens when they’re left out.
+
+**Trap.** Everything typed as a free-text string; every field required (Claude is pushed to invent values, the same lesson as extraction schemas in Task 4.3); an optional field with no stated default, so nobody knows what happens when it’s omitted.
+
+### Y3 Tool error handling: categories, idempotency, partial success
+
+| Category | Example | Retry? | What the agent does |
+| --- | --- | --- | --- |
+| Transient | Timeout, 503 | Yes | Retry, ideally with the same idempotency key |
+| Validation | Bad date format | After fixing the input | Correct the argument and call again |
+| Business | Refund over the $500 limit | No | Explain to the customer or escalate |
+| Permission | Token lacks refund scope | No | Escalate or use another path |
+
+#### Idempotency: why a retry can double-refund
+
+1. Claude calls `process_refund` for $120.
+2. The payment system **completes** the refund, but the response times out.
+3. Claude sees a transient error and retries.
+4. Without idempotency: a second $120 refund. With an `idempotency_key`: the server recognises the repeat and returns the original result.
+
+```
+{ "order_id": "ORD-048812", "amount": 120.00, "reason": "damaged",
+  "idempotency_key": "refund-ORD-048812-2026-11-20-001" }
+```
+
+#### Partial success: report both halves
+
+```
+{
+  "processed": [ { "order_id": "ORD-000101", "refund_id": "R-9001" },
+                 { "order_id": "ORD-000102", "refund_id": "R-9002" } ],
+  "failed":    [ { "order_id": "ORD-000103", "errorCategory": "business",
+                   "isRetryable": false,
+                   "message": "Refund exceeds the $500 limit; needs human approval" } ]
+}
+```
+
+The agent can confirm the two refunds that worked and escalate only the third, rather than redoing everything or telling the customer nothing happened.
+
+**Concept.** Structured errors tell the agent **what kind of failure** happened so it can choose the right recovery (Task 2.2). Two more ideas matter for production tools. **Idempotency:** calling the tool again with the same input must be safe, with no duplicate side effects. **Partial success:** when a call handles several items, return what succeeded alongside what failed, instead of all-or-nothing.
+
+**Exam answer.** Error responses carry a category, a retryable flag and a clear message. Write tools that create or change things accept an **idempotency key** so a retry after a timeout can’t double-apply. Batch tools return `processed` and `failed` lists, each failure with its own category.
+
+**Trap.** Retrying a non-idempotent write after a timeout (the first call may have succeeded, so the customer is refunded twice); failing a 10-item batch because 1 item failed; a generic “Operation failed.”
+
+### Y4 MCP foundations: primitives and transports
+
+| Primitive | Controlled by | What it is | Example |
+| --- | --- | --- | --- |
+| **Tools** | The model | Actions Claude can call | `create_issue`, `process_refund` |
+| **Resources** | The application | Readable data the app makes available | A database schema, a docs tree, issue summaries |
+| **Prompts** | The user | Reusable prompt templates, often shown as slash commands | “Summarize this incident” template |
+
+| Transport | Where the server runs | Typical use |
+| --- | --- | --- |
+| **stdio** | A local process on your machine; talks over standard input/output | Dev tools, local files, a local database |
+| **HTTP** (Streamable HTTP) | A remote server reached over the network | Shared company services, SaaS integrations; the recommended remote option |
+| **SSE** (Server-Sent Events) | A remote server, older style | Still common in study material and on the exam; now deprecated in favour of HTTP |
+
+**Exam framing.** Study material often pairs “local = stdio, remote = SSE.” Current Claude Code docs mark SSE as deprecated and recommend HTTP for remote servers. If an option says SSE for a remote server and there’s no HTTP option, it’s the right idea.
+
+**Concept.** The **Model Context Protocol (MCP)** is an open standard for connecting models to external tools and data: one protocol, many servers. The **host** (Claude Code, the Claude app, or your agent) runs an MCP client for each server it connects to. Servers expose three **primitives** and connect over a **transport**.
+
+**Exam answer.** Choose the primitive by who starts it: the model (tool), the application (resource) or the user (prompt). Use stdio for a local tool on the developer’s machine and a remote transport (HTTP) for a shared service. For standard systems such as GitHub, use an existing community server rather than building your own.
+
+**Trap.** Exposing a read-only catalog (a database schema, a docs tree) as dozens of tools instead of a resource; building a custom server for a system that already has one; assuming a remote server must use stdio.
+
+### Y5 Tool authorization and least privilege
+
+| Integration | Credential | Scope |
+| --- | --- | --- |
+| Order lookup | `ORDERS_READ_TOKEN` | Read orders only |
+| Refunds | `REFUNDS_TOKEN` | Create refunds; server rejects anything over $500 |
+| GitHub (review agent) | `GITHUB_TOKEN` (fine-grained) | One repository, read-only |
+| Ticketing | `JIRA_TOKEN` | Create and comment; no delete |
+
+**Why the model can’t be the boundary.** Claude’s choices can be steered by what it reads: a web page or document can contain instructions (prompt injection). If the token itself can’t delete, a manipulated request to delete still fails. Least privilege limits the damage of any mistake.
+
+**Concept.** Give each tool and each agent **only the permissions its job needs**. The **host and the server, not the model,** enforce the security boundary between tools and the systems behind them. Scope credentials **per integration** rather than sharing one broad credential across every tool.
+
+**Exam answer.** Read-only tokens for lookup tools; a separate, narrowly scoped credential for writes; hard limits (such as the $500 refund cap) checked on the server; secrets passed as environment variables; each subagent’s tool list limited to its role.
+
+**Trap.** A prompt line such as “never delete records” as the only protection; one admin token shared by every MCP server; trusting the model’s arguments without server-side validation.
+
+### Y6 Advanced MCP: scopes, overlapping names, environment variables
+
+| Scope | Stored in | Loads in | Shared via git |
+| --- | --- | --- | --- |
+| **Local** (default) | `~/.claude.json`, under this project | This project, just you | No |
+| **Project** | `.mcp.json` at the repo root | This project, whole team | Yes |
+| **User** | `~/.claude.json` | All your projects | No |
+
+Precedence when the same server is defined in several scopes: **local > project > user**. Claude Code connects once, using the whole entry from the highest one; fields are not merged. Study material often describes only two tiers (project vs user); that framing still answers most exam questions.
+
+#### Overlapping tool names
+
+Claude Code prefixes each MCP tool with its server name, so a `search` tool on two servers becomes `mcp__github__search` and `mcp__jira__search`. The names no longer collide, but Claude still needs descriptions that say which to use: “Search code and pull requests” versus “Search tickets and their comments.” Use the full prefixed names in permission rules and hook matchers.
+
+#### Environment variable expansion
+
+```
+{
+  "mcpServers": {
+    "orders-api": {
+      "type": "http",
+      "url": "${ORDERS_API_URL:-https://api.example.com}/mcp",
+      "headers": { "Authorization": "Bearer ${ORDERS_READ_TOKEN}" }
+    }
+  }
+}
+```
+
+| Syntax | Meaning | Works in |
+| --- | --- | --- |
+| `${VAR}` | The value of `VAR` | `command`, `args`, `env`, `url`, `headers` |
+| `${VAR:-default}` | `VAR` if set, otherwise `default` | Same fields; handy for dev vs production URLs |
+
+**Concept.** In production you manage MCP servers across **scopes**, deal with **several servers exposing similar tools**, and keep configuration **flexible per environment** without committing secrets.
+
+**Exam answer.** Team servers in the project’s `.mcp.json` with `${VAR}` for secrets and `${VAR:-default}` for environment-specific values; personal or experimental servers in user or local scope. When two servers both offer `search`, rely on Claude Code’s per-server names and give each tool a description that says how it differs; remove servers the task doesn’t need.
+
+**Trap.** Hard-coding tokens in `.mcp.json`; putting personal experimental servers in the shared project file; assuming settings for the same server merge across scopes (the highest-precedence entry is used whole); connecting every available server “just in case”, which makes tool selection less reliable.
+
+## Common exam traps
+
+**Trap 1:** **Fixing wrong-tool selection with few-shot examples or a router.**
+
+**Why it’s wrong:** Descriptions are the routing signal. Rewrite them: what, when (and when not), what it returns.
+
+**Example:** “Agent calls get_customer for order questions” → improve both descriptions.
+
+**Trap 2:** **Accepting free text and validating afterwards.**
+
+**Why it’s wrong:** Constrain inputs in the schema: enums, patterns, min/max, formats.
+
+**Example:** `"reason": {"type": "string"}` → an enum with `"other"`.
+
+**Trap 3:** **Making every parameter required.**
+
+**Why it’s wrong:** Required fields push Claude to invent values. Require only what the tool can’t work without, and state defaults for the rest.
+
+**Example:** Optional `limit` → “defaults to 20.”
+
+**Trap 4:** **Retrying a write that isn’t idempotent.**
+
+**Why it’s wrong:** A timeout doesn’t mean the action failed. Use an idempotency key so repeats are safe.
+
+**Example:** A retried refund pays the customer twice.
+
+**Trap 5:** **Returning all-or-nothing results for batch tools.**
+
+**Why it’s wrong:** Report what succeeded and what failed, each failure with its category.
+
+**Example:** 9 of 10 refunds worked; escalate just the tenth.
+
+**Trap 6:** **Trusting the model to respect a security boundary.**
+
+**Why it’s wrong:** Scope credentials and validate on the server; the model’s choices can be manipulated.
+
+**Example:** “Never delete” in the prompt, but the token can delete.
+
+**Trap 7:** **One broad credential shared by every tool.**
+
+**Why it’s wrong:** Scope credentials per integration and per role.
+
+**Example:** A read-only review agent holding an admin GitHub token.
+
+**Trap 8:** **Exposing a read-only catalog as many tools.**
+
+**Why it’s wrong:** Use an MCP resource so the agent can see what exists without exploratory calls.
+
+**Example:** A database schema browsed via 30 `describe_table` calls.
 
 ## Check yourself
 

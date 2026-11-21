@@ -1,6 +1,6 @@
 # Practice Questions
 
-96 scenario questions grouped by domain. Try each one before opening the answer. For a scored, shuffled run, use the [practice exam on the live site](https://ppotdar.github.io/ccaf-study-course/#practice). Download: [CSV](https://github.com/ppotdar/ccaf-study-course/blob/main/ccaf_mcq_bank.csv) · [JSON](https://github.com/ppotdar/ccaf-study-course/blob/main/ccaf_mcq_bank.json)
+104 scenario questions grouped by domain. Try each one before opening the answer. For a scored, shuffled run, use the [practice exam on the live site](https://ppotdar.github.io/ccaf-study-course/#practice). Download: [CSV](https://github.com/ppotdar/ccaf-study-course/blob/main/ccaf_mcq_bank.csv) · [JSON](https://github.com/ppotdar/ccaf-study-course/blob/main/ccaf_mcq_bank.json)
 
 **Jump to:** [Domain 1](#domain-1-agentic-architecture--orchestration) · [Domain 2](#domain-2-tool-design--mcp-integration) · [Domain 3](#domain-3-claude-code-configuration--workflows) · [Domain 4](#domain-4-prompt-engineering--structured-output) · [Domain 5](#domain-5-context-management--reliability)
 
@@ -566,6 +566,142 @@ An Edit call fails because its anchor text appears several times in the file. Wh
 **B.** Read the whole file, then Write the full updated content
 
 Edit needs a unique match. When none exists, Read plus Write is the documented fallback; a global replace may change the wrong occurrences.
+
+</details>
+
+**Q99** · Task 2.x Schema design · Customer Support
+
+A refund tool's schema defines "reason": {"type": "string"}. Downstream reports break because Claude sends values like "item broke", "Damaged!" and "arrived damaged". What is the best fix?
+
+- **A.** Change reason to an enum of allowed values, plus "other" and a reason_detail field
+- **B.** Add a sentence to the system prompt asking Claude to use consistent reason wording
+- **C.** Normalize the reason text in the reporting job after each refund is stored
+- **D.** Remove the reason field from the schema so reports no longer depend on it
+
+<details><summary>Show answer</summary>
+
+**A.** Change reason to an enum of allowed values, plus "other" and a reason_detail field
+
+Constrain inputs in the schema instead of accepting free text and fixing it afterwards. An enum gives downstream systems a fixed set of values; "other" plus a detail field keeps it extensible.
+
+</details>
+
+**Q100** · Task 2.x Schema design · Developer Productivity
+
+A search tool has an optional "limit" parameter with no description. Sometimes Claude omits it and gets 10,000 results; sometimes it sets 5 and misses matches. What is the most effective change?
+
+- **A.** Make limit required so Claude always has to choose a value for it
+- **B.** State the default and range in the schema: "Defaults to 20 if omitted, maximum 100"
+- **C.** Remove limit and always return every matching result to Claude
+- **D.** Tell Claude in the system prompt to always pass limit=50 when searching
+
+<details><summary>Show answer</summary>
+
+**B.** State the default and range in the schema: "Defaults to 20 if omitted, maximum 100"
+
+Every optional field needs a sensible, stated default. Making it required pushes Claude to guess; returning everything floods context; a prompt rule is weaker than documenting the behaviour in the schema itself.
+
+</details>
+
+**Q101** · Task 2.x Error handling · Customer Support
+
+process_refund times out. The agent retries, and the customer is refunded twice because the first call had actually completed. What design change prevents this?
+
+- **A.** Stop retrying any tool call that returns a timeout error
+- **B.** Increase the tool's timeout so the first call always returns a response
+- **C.** Accept an idempotency key so a repeated call with the same key returns the original result
+- **D.** Ask Claude to confirm with the customer before every retry it attempts
+
+<details><summary>Show answer</summary>
+
+**C.** Accept an idempotency key so a repeated call with the same key returns the original result
+
+A timeout doesn't mean the action failed. Idempotent write tools make retries safe: the server recognises the repeated key and returns the first result instead of refunding again.
+
+</details>
+
+**Q102** · Task 2.x Error handling · Structured Data Extraction
+
+A bulk_update tool processes 10 records. If any one record fails validation, it returns only "Operation failed" and the agent re-submits all 10. What should the tool return instead?
+
+- **A.** A generic failure, but with a longer timeout so fewer calls fail
+- **B.** Success for the whole batch, logging the failed record separately
+- **C.** An exception that stops the agent until a human reviews the batch
+- **D.** The processed records plus a failed list with each record's error category and message
+
+<details><summary>Show answer</summary>
+
+**D.** The processed records plus a failed list with each record's error category and message
+
+Report partial success: what worked and what failed, each failure categorised. The agent then fixes or escalates only the failed record instead of redoing everything or hiding the failure.
+
+</details>
+
+**Q103** · Task 2.x MCP primitives · Developer Productivity
+
+Your team wants a reusable "summarize this incident" template that engineers pick from a menu when they choose to, not something Claude calls on its own. Which MCP primitive fits?
+
+- **A.** An MCP prompt, since prompts are user-controlled reusable templates
+- **B.** An MCP tool, since tools are what Claude can call to take action
+- **C.** An MCP resource, since resources hold readable data for the application
+- **D.** A new MCP server dedicated to incident summaries and nothing else
+
+<details><summary>Show answer</summary>
+
+**A.** An MCP prompt, since prompts are user-controlled reusable templates
+
+Pick the primitive by who starts it: tools are model-controlled, resources are application-controlled, prompts are user-controlled templates (often shown as slash commands).
+
+</details>
+
+**Q104** · Task 2.x MCP transports · Developer Productivity
+
+A developer wants an MCP server that reads files from a folder on their own laptop. Which transport fits best?
+
+- **A.** A remote HTTP server deployed in the company cloud
+- **B.** stdio, running the server as a local process on the laptop
+- **C.** Server-Sent Events from a shared server that mounts the laptop's folder
+- **D.** No MCP server; paste the files into the system prompt instead
+
+<details><summary>Show answer</summary>
+
+**B.** stdio, running the server as a local process on the laptop
+
+stdio runs the server as a local process and suits local tools and files. Remote transports (HTTP, or SSE in older material) are for shared network services.
+
+</details>
+
+**Q105** · Task 2.x Least privilege · Customer Support
+
+The system prompt says "never delete customer records." After a crafted support message, the agent calls delete_customer and it succeeds. What is the right fix?
+
+- **A.** Repeat the rule at the start and end of the system prompt in capitals
+- **B.** Add few-shot examples showing the agent refusing to delete records
+- **C.** Remove delete permission from the agent's tools and credential, so the host blocks it
+- **D.** Add a classifier that scores each message for deletion intent first
+
+<details><summary>Show answer</summary>
+
+**C.** Remove delete permission from the agent's tools and credential, so the host blocks it
+
+The host and server enforce the security boundary, not the model. Least privilege means the agent's tools and token simply can't delete, so even a manipulated request fails.
+
+</details>
+
+**Q106** · Task 2.x Advanced MCP · Developer Productivity
+
+Both a GitHub server and a Jira server expose a tool named search, and Claude often searches the wrong system. Claude Code shows them as mcp__github__search and mcp__jira__search. What is the best fix?
+
+- **A.** Rename both servers so their tool names are shorter and easier to read
+- **B.** Disconnect one of the two servers so that only one search tool remains
+- **C.** Add a system-prompt rule that GitHub must always be searched first
+- **D.** Give each search tool a description that says what it searches and when to use it
+
+<details><summary>Show answer</summary>
+
+**D.** Give each search tool a description that says what it searches and when to use it
+
+The server prefix already prevents a name clash; wrong selection is a description problem. Say what each searches (code and PRs vs tickets and comments) and when to use it.
 
 </details>
 

@@ -34,6 +34,13 @@ Reread this the morning of the exam.
 | Hook exit codes | 0 proceed, **2 block**, anything else = non-blocking warning |
 | `.claude/agents/<name>.md` | Team subagent with its own prompt, tools and context window |
 | `disable-model-invocation: true` | Skill runs only when a person types it |
+| Tool description: 3 parts | What it does · when to use it (and not) · what it returns |
+| Schema constraints | `enum`, `pattern`, `minimum`/`maximum`, `maxLength`, stated defaults |
+| Idempotency key | Makes a retried write safe: no double refunds |
+| MCP primitives | Tools (model) · resources (app) · prompts (user) |
+| MCP transports | stdio = local · HTTP = remote (SSE = older, deprecated) |
+| MCP scopes | Local > project (`.mcp.json`) > user; highest entry wins whole |
+| `${VAR:-default}` | Env var with a fallback value in `.mcp.json` |
 
 ## Words that signal the answer
 
