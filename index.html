@@ -758,6 +758,7 @@ exit 0</code></pre><p class="related">Simplified for study: in a real hook, read
 
 <article class="task" id="z-z1">
   <header><span class="tnum">Z1</span><h3>Clarity and system prompts</h3></header>
+  <div class="callout"><b>Key idea: keep the stable part and the changing part apart.</b> A well-designed system prompt holds the stable identity and constraints (role, tone, boundaries). Per-request content (this ticket, this document, this question) goes in the user turn. Mixing the two makes prompts <b>brittle and hard to reuse</b> across requests.</div>
   <div class="splitgrid"><div class="splitpanel bad"><div class="splithead">Vague: inconsistent results</div><pre class="wrap"><code>System: You are a helpful assistant.
 User: Summarize this ticket.</code></pre><p class="related">Length, focus and format change on every run.</p></div><div class="splitpanel good"><div class="splithead">Specific: consistent results</div><pre class="wrap"><code>System: You summarize support
 tickets for Tier-2 engineers.
@@ -776,6 +777,7 @@ the customer wants.
 </article>
 <article class="task" id="z-z2">
   <header><span class="tnum">Z2</span><h3>XML tags and document structure</h3></header>
+  <div class="callout"><b>Exam fact: a recurring &ldquo;what&rsquo;s wrong with this prompt&rdquo; pattern.</b> A long, unstructured prompt that mixes instructions and reference documents in plain paragraphs. The fix is almost always to <b>add explicit structural tags</b>.</div>
   <h4 class="subhead">Worked example</h4><pre class="wrap"><code>&lt;instructions&gt;
 Extract every termination clause from the contract.
 Return the clause number and a one-line summary.
@@ -792,20 +794,22 @@ Return the clause number and a one-line summary.
   <dl>
     <div class="row concept"><dt>Concept</dt><dd>XML tags such as <code>&lt;context&gt;</code>, <code>&lt;instructions&gt;</code> and <code>&lt;examples&gt;</code> mark out the sections of a complex, multi-part prompt. Structure removes ambiguity about which text is an <b>instruction</b>, which is <b>data</b> and which is an <b>example</b>.</dd></div>
     <div class="row answer"><dt>Exam answer</dt><dd>In long prompts, wrap each kind of content in its own tag and use the same tag names every time, so the model reliably tells reference material from the task. Refer to the tags in your instructions (&ldquo;Answer using only the contract in &lt;contract&gt;&rdquo;). Put long documents first and the question last.</dd></div>
-    <div class="row trap"><dt>Trap</dt><dd>One long block of mixed text where the model follows an instruction buried inside a pasted document; changing tag names between prompts.</dd></div>
+    <div class="row trap"><dt>Trap</dt><dd>Rewording or adding emphasis to a long unstructured prompt instead of adding tags; one long block of mixed text where the model follows an instruction buried inside a pasted document; changing tag names between prompts.</dd></div>
   </dl>
 </article>
 <article class="task" id="z-z3">
   <header><span class="tnum">Z3</span><h3>Few-shot and chain-of-thought</h3></header>
+  <div class="callout"><b>Decision rule.</b> Use <b>few-shot examples</b> to fix ambiguity or format drift: show, don&rsquo;t just tell. Use <b>chain-of-thought or extended thinking</b> only when the task genuinely needs multi-step reasoning. For simple lookups it just adds <b>latency and cost</b>.</div>
   <div class="tablewrap"><table><thead><tr><th>Symptom</th><th>Reach for</th><th>Why</th></tr></thead><tbody><tr><td>Format drifts; edge cases handled differently each run</td><td>2&ndash;4 few-shot examples of the tricky cases</td><td>Examples anchor the shape and the judgment</td></tr><tr><td>Wrong answer on a multi-step calculation or policy check</td><td>Chain-of-thought or extended thinking</td><td>Reasoning before answering improves accuracy</td></tr><tr><td>Reasoning text breaks the JSON parser</td><td>Separate reasoning from the answer</td><td><code>&lt;thinking&gt;</code> vs <code>&lt;answer&gt;</code>, or extended thinking</td></tr></tbody></table></div>
   <dl>
     <div class="row concept"><dt>Concept</dt><dd><b>Few-shot:</b> a small number of high-quality input/output examples anchors the format and shows how edge cases are handled (see <a href="#d4" data-target="t4-2">4.2</a>). <b>Chain-of-thought:</b> asking the model to reason step by step before answering improves accuracy on multi-step problems. <b>Extended thinking</b> gives the model a dedicated reasoning budget, separate from the final answer.</dd></div>
     <div class="row answer"><dt>Exam answer</dt><dd>Use few-shot for <b>format and judgment calls</b>; use chain-of-thought or extended thinking for <b>multi-step reasoning</b> (calculations, multi-rule policy decisions, diagnosis). When you need parseable output, keep the reasoning apart from the answer: reasoning inside <code>&lt;thinking&gt;</code> tags and the result inside <code>&lt;answer&gt;</code>, or let extended thinking hold it.</dd></div>
-    <div class="row trap"><dt>Trap</dt><dd>More examples to fix a reasoning error (examples teach format, not logic); chain-of-thought mixed into a JSON field that a parser then chokes on.</dd></div>
+    <div class="row trap"><dt>Trap</dt><dd>More examples to fix a reasoning error (examples teach format, not logic); chain-of-thought on a simple lookup, which only adds latency and cost; chain-of-thought mixed into a JSON field that a parser then chokes on.</dd></div>
   </dl>
 </article>
 <article class="task" id="z-z4">
   <header><span class="tnum">Z4</span><h3>Output steering</h3></header>
+  <div class="callout"><b>Key idea: the standard combination for structured work.</b> For extraction or classification, <b>low temperature plus prefilling or format anchoring</b>, favoring consistency over creative variation.</div>
   <div class="tablewrap"><table><thead><tr><th>Setting</th><th>What it controls</th><th>Use</th></tr></thead><tbody><tr><td><code>temperature</code></td><td>How random each token choice is</td><td>Low (near 0) for extraction and classification; higher for ideas</td></tr><tr><td><code>top_p</code></td><td>Samples only from the most likely tokens whose probabilities add up to <i>p</i></td><td>Usually tune temperature <i>or</i> top_p, not both</td></tr><tr><td><code>top_k</code></td><td>Samples only from the <i>k</i> most likely tokens</td><td>Rarely needed; an advanced cap on odd choices</td></tr></tbody></table></div><div class="callout"><b>Note on prefilling.</b> The exam material treats prefilling as a standard steering technique, so answer that way. On the newest Claude models, though, a prefilled last assistant turn is no longer supported and returns an error; the replacement is structured outputs (a JSON schema in the request) or a forced tool call (Z5). Some newer models also restrict sampling settings, so check the model&rsquo;s docs before relying on them.</div>
   <dl>
     <div class="row concept"><dt>Concept</dt><dd><b>Prefilling:</b> starting the assistant&rsquo;s response yourself (for example with <code>{</code>) to force a format or skip a preamble. <b>Format anchoring:</b> showing the exact target structure so the model fills it in rather than inventing one. <b>Sampling settings</b> (<code>temperature</code>, <code>top_p</code>, <code>top_k</code>) control randomness: lower for deterministic, structured tasks.</dd></div>
@@ -815,6 +819,7 @@ Return the clause number and a one-line summary.
 </article>
 <article class="task" id="z-z5">
   <header><span class="tnum">Z5</span><h3>Structured output and JSON mode</h3></header>
+  <div class="callout"><b>Exam fact: a schema alone isn&rsquo;t enough.</b> Even with schema-constrained output, the model can still drift under <b>ambiguous or conflicting instructions</b>: the JSON is valid but the values are wrong. Production systems pair schema enforcement with a <b>programmatic validation and retry loop</b>.</div>
   <div class="splitgrid"><div class="splitpanel good"><div class="splithead">A submit_result tool, forced</div><pre class="wrap"><code>{
   "name": "submit_result",
   "strict": true,
@@ -847,7 +852,7 @@ tool_choice: {"type": "tool",
   <dl>
     <div class="row concept"><dt>Concept</dt><dd><b>Schema-constrained output</b> enforces a defined JSON shape instead of hoping the model follows an example. <b>Tool use doubles as extraction:</b> define a <code>submit_result</code> tool with a strict input schema and force it. <b>Validation loops</b> re-prompt or retry when output fails schema validation, rather than accepting a malformed result.</dd></div>
     <div class="row answer"><dt>Exam answer</dt><dd>When downstream code parses the output, enforce the schema (structured outputs, or a forced tool with <code>strict: true</code>) instead of asking for JSON in prose. Then validate meaning in code and retry with the specific error (see <a href="#d4" data-target="t4-3">4.3</a> and <a href="#d4" data-target="t4-4">4.4</a>). A schema fixes <b>syntax</b>; only validation catches <b>semantic</b> errors.</dd></div>
-    <div class="row trap"><dt>Trap</dt><dd>Parsing free-text JSON with regex; accepting the first malformed result; assuming a valid schema means correct values.</dd></div>
+    <div class="row trap"><dt>Trap</dt><dd>Parsing free-text JSON with regex; accepting the first malformed result; assuming a valid schema means correct values; relying on the schema alone when the instructions are ambiguous or conflicting.</dd></div>
   </dl>
 </article>
 <article class="task" id="z-z6">

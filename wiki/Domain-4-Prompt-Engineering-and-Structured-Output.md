@@ -58,6 +58,8 @@ These six cards cover the building blocks the task statements assume you know. E
 
 ### Z1 Clarity and system prompts
 
+**Key idea: keep the stable part and the changing part apart.** A well-designed system prompt holds the stable identity and constraints (role, tone, boundaries). Per-request content (this ticket, this document, this question) goes in the user turn. Mixing the two makes prompts **brittle and hard to reuse** across requests.
+
 #### Vague: inconsistent results
 
 ```
@@ -91,6 +93,8 @@ Role and limits in the system prompt; the task, format and data in the user turn
 
 ### Z2 XML tags and document structure
 
+**Exam fact: a recurring “what’s wrong with this prompt” pattern.** A long, unstructured prompt that mixes instructions and reference documents in plain paragraphs. The fix is almost always to **add explicit structural tags**.
+
 #### Worked example
 
 ```
@@ -115,9 +119,11 @@ Because the contract sits inside `<contract>`, the line inside it reads as data 
 
 **Exam answer.** In long prompts, wrap each kind of content in its own tag and use the same tag names every time, so the model reliably tells reference material from the task. Refer to the tags in your instructions (“Answer using only the contract in <contract>”). Put long documents first and the question last.
 
-**Trap.** One long block of mixed text where the model follows an instruction buried inside a pasted document; changing tag names between prompts.
+**Trap.** Rewording or adding emphasis to a long unstructured prompt instead of adding tags; one long block of mixed text where the model follows an instruction buried inside a pasted document; changing tag names between prompts.
 
 ### Z3 Few-shot and chain-of-thought
+
+**Decision rule.** Use **few-shot examples** to fix ambiguity or format drift: show, don’t just tell. Use **chain-of-thought or extended thinking** only when the task genuinely needs multi-step reasoning. For simple lookups it just adds **latency and cost**.
 
 | Symptom | Reach for | Why |
 | --- | --- | --- |
@@ -129,9 +135,11 @@ Because the contract sits inside `<contract>`, the line inside it reads as data 
 
 **Exam answer.** Use few-shot for **format and judgment calls**; use chain-of-thought or extended thinking for **multi-step reasoning** (calculations, multi-rule policy decisions, diagnosis). When you need parseable output, keep the reasoning apart from the answer: reasoning inside `<thinking>` tags and the result inside `<answer>`, or let extended thinking hold it.
 
-**Trap.** More examples to fix a reasoning error (examples teach format, not logic); chain-of-thought mixed into a JSON field that a parser then chokes on.
+**Trap.** More examples to fix a reasoning error (examples teach format, not logic); chain-of-thought on a simple lookup, which only adds latency and cost; chain-of-thought mixed into a JSON field that a parser then chokes on.
 
 ### Z4 Output steering
+
+**Key idea: the standard combination for structured work.** For extraction or classification, **low temperature plus prefilling or format anchoring**, favoring consistency over creative variation.
 
 | Setting | What it controls | Use |
 | --- | --- | --- |
@@ -148,6 +156,8 @@ Because the contract sits inside `<contract>`, the line inside it reads as data 
 **Trap.** High temperature for a structured extraction job; asking “please only output JSON” and hoping, when the format can be anchored or enforced.
 
 ### Z5 Structured output and JSON mode
+
+**Exam fact: a schema alone isn’t enough.** Even with schema-constrained output, the model can still drift under **ambiguous or conflicting instructions**: the JSON is valid but the values are wrong. Production systems pair schema enforcement with a **programmatic validation and retry loop**.
 
 #### A submit_result tool, forced
 
@@ -197,7 +207,7 @@ Retry with a specific error, and never retry to force a value the source doesn't
 
 **Exam answer.** When downstream code parses the output, enforce the schema (structured outputs, or a forced tool with `strict: true`) instead of asking for JSON in prose. Then validate meaning in code and retry with the specific error (see [4.3](Domain-4-Prompt-Engineering-and-Structured-Output.md) and [4.4](Domain-4-Prompt-Engineering-and-Structured-Output.md)). A schema fixes **syntax**; only validation catches **semantic** errors.
 
-**Trap.** Parsing free-text JSON with regex; accepting the first malformed result; assuming a valid schema means correct values.
+**Trap.** Parsing free-text JSON with regex; accepting the first malformed result; assuming a valid schema means correct values; relying on the schema alone when the instructions are ambiguous or conflicting.
 
 ### Z6 Multi-turn design and evaluation
 
