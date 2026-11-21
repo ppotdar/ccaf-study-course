@@ -230,6 +230,25 @@ Without the held-out set, the edit looks like a pure win. The regression only sh
 
 **Trap.** Shipping a prompt edit because it fixed the one complaint you tested; judging a change on a handful of hand-picked examples; letting a long chat grow until early facts are lost; fixing a context problem by rewording the prompt.
 
+## Key terminology
+
+Short definitions to recognize instantly on the exam. The last column shows where each term is covered in depth.
+
+| Term | Meaning | Covered in |
+| --- | --- | --- |
+| **System prompt** | The stable instructions that define role and constraints, given separately from the per-request user content. | Z1 |
+| **XML tags (prompt structuring)** | Delimiters such as `<context>` or `<instructions>` that separate instruction, data and example sections in a prompt. | Z2 |
+| **Few-shot prompting** | Including a small number of high-quality example input/output pairs to anchor the format and edge-case behavior. | Z3, Task 4.2 |
+| **Chain-of-thought** | Prompting the model to reason step by step before giving a final answer, which improves multi-step accuracy. | Z3 |
+| **Extended thinking** | A dedicated reasoning budget or mode, separate from the final answer, used for harder multi-step problems. | Z3 |
+| **Prefilling** | Seeding the start of the assistant’s response to force a format or skip an unwanted preamble. Not supported on the newest models; see the note in Z4. | Z4 |
+| **Format anchoring** | Showing the exact target output structure, so the model completes a pattern rather than inventing one. | Z4 |
+| **Temperature / top_p / top_k** | Generation settings that control randomness and diversity of output. Lower values favor consistency. | Z4 |
+| **JSON mode / schema-constrained output** | Enforcing a defined JSON shape for the output, rather than relying on the model to follow an example. | Z5, Task 4.3 |
+| **Validation loop** | Checking output against the schema in code, and re-prompting or retrying on failure instead of accepting a malformed result. | Z5, Task 4.4 |
+| **Context accumulation** | The build-up of earlier turns and data across a multi-turn conversation, which degrades quality if unmanaged. | Z6, Task 5.1 |
+| **Regression testing (prompts)** | Re-running a fixed test set after a prompt change to confirm no previously passing case now fails. | Z6 |
+
 ## Check yourself
 
 This domain's interactive quiz is on the [live site](https://ppotdar.github.io/ccaf-study-course/#d4). The same questions, with answers, are on [Practice Questions](Practice-Questions.md).
