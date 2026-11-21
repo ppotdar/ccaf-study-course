@@ -1,6 +1,10 @@
 # Domain 2: Tool Design & MCP Integration
 
-How to make Claude pick the right tool, recover from tool failures, and wire MCP servers into a team setup. The five task statements come first, then [deeper cards](Domain-2-Tool-Design-and-MCP.md) on schema design, idempotency, MCP primitives and transports, least privilege, and production MCP.
+How to make Claude pick the right tool, design tool inputs and errors, keep tool access safe, and wire MCP servers into a team setup. The page is grouped by topic; each section starts with the official task statement (numbered 2.x) where there is one, followed by deeper cards (Y1–Y6).
+
+## 1. Tool descriptions
+
+How Claude decides which tool to call, and how to write descriptions it can route on.
 
 ### 2.1 Tool interfaces and descriptions
 
@@ -9,65 +13,6 @@ How to make Claude pick the right tool, recover from tool failures, and wire MCP
 **Exam answer.** Misrouting between `get_customer` and `lookup_order`: expand both descriptions with boundaries. Overlapping tools (`analyze_content` vs `analyze_document`): rename and differentiate, or split a generic tool into purpose-specific ones. Also check the system prompt: a keyword-heavy instruction can override good descriptions.
 
 **Trap.** Few-shot examples to fix routing; [a routing classifier](FAQ-Routing-Classifier.md); merging every tool into one.
-
-### 2.2 Structured MCP errors
-
-| Category | Example | Right reaction |
-| --- | --- | --- |
-| Transient | Timeout, 503 | Retry, often locally in the subagent |
-| Validation | Bad date format | Fix the input, retry |
-| Business | Refund exceeds policy | Do not retry; explain or escalate |
-| Permission | Not authorized | Do not retry; escalate or use another path |
-
-**Concept.** MCP tools signal failure with `isError: true`. Each error category needs a different reaction.
-
-**Exam answer.** Return `errorCategory`, `isRetryable` and a readable description; business-rule violations add `retriable: false` and a customer-friendly explanation. Subagents recover transient errors locally and pass up only what they cannot fix. Keep “the lookup failed” distinct from “the lookup worked and found nothing.”
-
-**Trap.** A generic “Operation failed”; returning `[]` on a timeout, which looks like a real no-match.
-
-### 2.3 Distributing tools and tool_choice
-
-| tool_choice | Behavior | Use when |
-| --- | --- | --- |
-| `{"type":"auto"}` | May call a tool or answer in text | Normal agent turns |
-| `{"type":"any"}` | Must call some tool | Structured output with several schemas |
-| `{"type":"tool","name":"X"}` | Must call tool X | Force a first step or one schema |
-| `{"type":"none"}` | No tools | Pure text turn |
-
-**Concept.** More tools make selection harder, and agents given tools outside their role misuse them.
-
-**Exam answer.** Give each subagent only its role's 4–5 tools. Replace generic tools with constrained ones (`fetch_url` becomes `load_document` that validates URLs). Give a narrow cross-role tool for a frequent need: synthesis gets `verify_fact` for simple lookups, while complex checks go through the coordinator.
-
-**Trap.** Giving synthesis full web search to cut latency; one mega-agent with every tool.
-
-### 2.4 MCP servers in Claude Code and agents
-
-**Concept.** Scope decides who gets a server: project `.mcp.json` (committed, shared) or user `~/.claude.json` (personal). MCP has three primitives: **tools** (model-invoked), **resources** (read-only content the app exposes), **prompts** (user-invoked templates).
-
-**Exam answer.** Shared servers go in `.mcp.json` with environment variable expansion (`Bearer ${GITHUB_TOKEN}`) so no secret is committed. All servers' tools are discovered at connect time and available together. Expose catalogs (schemas, doc trees) as **resources** to avoid exploratory calls. If the agent prefers Grep over a better MCP tool, improve that tool's description. Prefer a community server over a custom one for standard integrations.
-
-**Trap.** Hard-coded tokens in `.mcp.json`; team servers in `~/.claude.json`; building a custom GitHub server.
-
-### 2.5 Built-in tools
-
-| Tool | Use it to | Example |
-| --- | --- | --- |
-| Grep | Search file **contents** | Callers of `processRefund`, an error string |
-| Glob | Find files by **name pattern** | `**/*.test.tsx` |
-| Read | Read a whole file | Follow imports from an entry point |
-| Edit | Change a unique text match | One function |
-| Write | Create or overwrite a file | Fallback when Edit's anchor isn't unique |
-| Bash | Run commands | Tests, git, builds |
-
-**Concept.** [Grep searches file contents. Glob finds files by name or path pattern.](FAQ-Grep-Glob-Read.md) Read reads a whole file, Edit changes a unique text match, Write creates or overwrites a file, Bash runs commands.
-
-**Exam answer.** Explore incrementally: Grep for entry points, then Read to follow the flow. To trace usage through wrapper modules, find the exported name and Grep for it. When Edit's anchor text is not unique, Read the file and Write it back.
-
-**Trap.** [Glob to search code text; Grep to find files by name](FAQ-Grep-Glob-Read.md); reading every file up front.
-
-## Going deeper: designing tools Claude uses well
-
-Exam questions in this domain often show a broken or weak tool definition and ask you to spot the flaw, so precision on schema anatomy matters more than breadth. These six cards go deeper than the task statements above.
 
 ### Y1 Tool descriptions as routing
 
@@ -108,6 +53,10 @@ Says what it does, when to use it and when not, and what comes back.
 **Exam answer.** Rewrite the description to cover all three parts, and name the neighbouring tool explicitly: “For account details, use `get_customer`.”
 
 **Trap.** Treating the description as human documentation; fixing misrouting with few-shot examples or a router; reformatting a description without changing what it says.
+
+## 2. Tool schemas
+
+The anatomy of a tool definition and how to constrain its inputs.
 
 ### Y2 Tool input schema design
 
@@ -191,6 +140,20 @@ Says what it does, when to use it and when not, and what comes back.
 
 **Trap.** Everything typed as a free-text string; every field required (Claude is pushed to invent values, the same lesson as extraction schemas in Task 4.3); an optional field with no stated default, so nobody knows what happens when it’s omitted.
 
+## 3. Tool errors
+
+Telling the agent what went wrong, so it retries only what can succeed.
+
+### 2.2 Structured MCP errors
+
+The four error categories, and how the agent should react to each, are in the table in card Y3 just below.
+
+**Concept.** MCP tools signal failure with `isError: true`. Each error category needs a different reaction.
+
+**Exam answer.** Return `errorCategory`, `isRetryable` and a readable description; business-rule violations add `retriable: false` and a customer-friendly explanation. Subagents recover transient errors locally and pass up only what they cannot fix. Keep “the lookup failed” distinct from “the lookup worked and found nothing.”
+
+**Trap.** A generic “Operation failed”; returning `[]` on a timeout, which looks like a real no-match.
+
 ### Y3 Tool error handling: categories, idempotency, partial success
 
 **Decision rule: retry only what can succeed next time.** **Transient** errors (a timeout, a 503) trigger an **automatic retry with backoff**. **Business** errors (“item out of stock”) and **permission** errors (“not authorized”) are **not retried**: surface them to the user or escalate.
@@ -236,6 +199,69 @@ The agent can confirm the two refunds that worked and escalate only the third, r
 
 **Trap.** Retrying a non-idempotent write after a timeout (the first call may have succeeded, so the customer is refunded twice); failing a 10-item batch because 1 item failed; a generic “Operation failed.”
 
+## 4. Tool access and security
+
+Which tools each agent gets, how to force a tool, and how to keep access minimal.
+
+### 2.3 Distributing tools and tool_choice
+
+| tool_choice | Behavior | Use when |
+| --- | --- | --- |
+| `{"type":"auto"}` | May call a tool or answer in text | Normal agent turns |
+| `{"type":"any"}` | Must call some tool | Structured output with several schemas |
+| `{"type":"tool","name":"X"}` | Must call tool X | Force a first step or one schema |
+| `{"type":"none"}` | No tools | Pure text turn |
+
+**Concept.** More tools make selection harder, and agents given tools outside their role misuse them.
+
+**Exam answer.** Give each subagent only its role's 4–5 tools. Replace generic tools with constrained ones (`fetch_url` becomes `load_document` that validates URLs). Give a narrow cross-role tool for a frequent need: synthesis gets `verify_fact` for simple lookups, while complex checks go through the coordinator.
+
+**Trap.** Giving synthesis full web search to cut latency; one mega-agent with every tool.
+
+### Y5 Tool authorization and least privilege
+
+**Exam trap: the model as the only safeguard.** Relying on the model’s good judgment as the *only* protection against an over-privileged tool is a wrong-answer pattern. The exam consistently rewards enforcing least privilege at the **host and permission layer**, not through prompting alone.
+
+| Integration | Credential | Scope |
+| --- | --- | --- |
+| Order lookup | `ORDERS_READ_TOKEN` | Read orders only |
+| Refunds | `REFUNDS_TOKEN` | Create refunds; server rejects anything over $500 |
+| GitHub (review agent) | `GITHUB_TOKEN` (fine-grained) | One repository, read-only |
+| Ticketing | `JIRA_TOKEN` | Create and comment; no delete |
+
+**Why the model can’t be the boundary.** Claude’s choices can be steered by what it reads: a web page or document can contain instructions (prompt injection). If the token itself can’t delete, a manipulated request to delete still fails. Least privilege limits the damage of any mistake.
+
+**Concept.** Give each tool and each agent **only the permissions its job needs**. The **host and the server, not the model,** enforce the security boundary between tools and the systems behind them. Scope credentials **per integration** rather than sharing one broad credential across every tool.
+
+**Exam answer.** Read-only tokens for lookup tools; a separate, narrowly scoped credential for writes; hard limits (such as the $500 refund cap) checked on the server; secrets passed as environment variables; each subagent’s tool list limited to its role.
+
+**Trap.** A prompt line such as “never delete records” as the only protection; one admin token shared by every MCP server; trusting the model’s arguments without server-side validation.
+
+## 5. Built-in tools
+
+Read, Grep, Glob, Edit, Write and Bash: which one for which job.
+
+### 2.5 Built-in tools
+
+| Tool | Use it to | Example |
+| --- | --- | --- |
+| Grep | Search file **contents** | Callers of `processRefund`, an error string |
+| Glob | Find files by **name pattern** | `**/*.test.tsx` |
+| Read | Read a whole file | Follow imports from an entry point |
+| Edit | Change a unique text match | One function |
+| Write | Create or overwrite a file | Fallback when Edit's anchor isn't unique |
+| Bash | Run commands | Tests, git, builds |
+
+**Concept.** [Grep searches file contents. Glob finds files by name or path pattern.](FAQ-Grep-Glob-Read.md) Read reads a whole file, Edit changes a unique text match, Write creates or overwrites a file, Bash runs commands.
+
+**Exam answer.** Explore incrementally: Grep for entry points, then Read to follow the flow. To trace usage through wrapper modules, find the exported name and Grep for it. When Edit's anchor text is not unique, Read the file and Write it back.
+
+**Trap.** [Glob to search code text; Grep to find files by name](FAQ-Grep-Glob-Read.md); reading every file up front.
+
+## 6. MCP
+
+From the basics of the protocol to configuring servers for a team and running several in production.
+
 ### Y4 MCP foundations: primitives and transports
 
 **Key idea: choose the transport by who shares the server.** **stdio** is simplest for **local, single-user, trusted** integrations, such as tools on a developer’s own machine. A **remote** transport (SSE in study material, HTTP in current docs) fits when the server must be **shared across users or sessions**, or **deployed independently** of the client.
@@ -260,24 +286,13 @@ The agent can confirm the two refunds that worked and escalate only the third, r
 
 **Trap.** Exposing a read-only catalog (a database schema, a docs tree) as dozens of tools instead of a resource; building a custom server for a system that already has one; assuming a remote server must use stdio.
 
-### Y5 Tool authorization and least privilege
+### 2.4 MCP servers in Claude Code and agents
 
-**Exam trap: the model as the only safeguard.** Relying on the model’s good judgment as the *only* protection against an over-privileged tool is a wrong-answer pattern. The exam consistently rewards enforcing least privilege at the **host and permission layer**, not through prompting alone.
+**Concept.** Scope decides who gets a server: project `.mcp.json` (committed, shared) or user `~/.claude.json` (personal). MCP has three primitives: **tools** (model-invoked), **resources** (read-only content the app exposes), **prompts** (user-invoked templates).
 
-| Integration | Credential | Scope |
-| --- | --- | --- |
-| Order lookup | `ORDERS_READ_TOKEN` | Read orders only |
-| Refunds | `REFUNDS_TOKEN` | Create refunds; server rejects anything over $500 |
-| GitHub (review agent) | `GITHUB_TOKEN` (fine-grained) | One repository, read-only |
-| Ticketing | `JIRA_TOKEN` | Create and comment; no delete |
+**Exam answer.** Shared servers go in `.mcp.json` with environment variable expansion (`Bearer ${GITHUB_TOKEN}`) so no secret is committed. All servers' tools are discovered at connect time and available together. Expose catalogs (schemas, doc trees) as **resources** to avoid exploratory calls. If the agent prefers Grep over a better MCP tool, improve that tool's description. Prefer a community server over a custom one for standard integrations.
 
-**Why the model can’t be the boundary.** Claude’s choices can be steered by what it reads: a web page or document can contain instructions (prompt injection). If the token itself can’t delete, a manipulated request to delete still fails. Least privilege limits the damage of any mistake.
-
-**Concept.** Give each tool and each agent **only the permissions its job needs**. The **host and the server, not the model,** enforce the security boundary between tools and the systems behind them. Scope credentials **per integration** rather than sharing one broad credential across every tool.
-
-**Exam answer.** Read-only tokens for lookup tools; a separate, narrowly scoped credential for writes; hard limits (such as the $500 refund cap) checked on the server; secrets passed as environment variables; each subagent’s tool list limited to its role.
-
-**Trap.** A prompt line such as “never delete records” as the only protection; one admin token shared by every MCP server; trusting the model’s arguments without server-side validation.
+**Trap.** Hard-coded tokens in `.mcp.json`; team servers in `~/.claude.json`; building a custom GitHub server.
 
 ### Y6 Advanced MCP: scopes, overlapping names, environment variables
 
@@ -320,7 +335,11 @@ Claude Code prefixes each MCP tool with its server name, so a `search` tool on t
 
 **Trap.** Hard-coding tokens in `.mcp.json`; putting personal experimental servers in the shared project file; assuming settings for the same server merge across scopes (the highest-precedence entry is used whole); connecting every available server “just in case”, which makes tool selection less reliable.
 
-## Exam scenario lens: where this domain shows up
+## Exam review
+
+Where this domain shows up in the six scenarios, the traps to avoid, and the terms to know.
+
+### Exam scenario lens: where this domain shows up
 
 Tool design and MCP show up in all six scenarios, not just the agent ones.
 
@@ -333,7 +352,7 @@ Tool design and MCP show up in all six scenarios, not just the agent ones.
 | **Claude Code for CI/CD** | Idempotent tool calls so pipeline retries don’t cause duplicate side effects | “A rerun pipeline posted every PR comment twice.” | Make the posting tool idempotent (a key per finding) so reruns are safe (Y3) |
 | **Developer Productivity** | Precise tool descriptions so Claude routes to the right internal tool | “The agent uses Grep instead of the semantic code_search tool.” | Rewrite code_search’s description: what, when, what it returns (Y1) |
 
-## Common exam traps
+### Common exam traps
 
 The first four come from your slide deck; the rest come up repeatedly elsewhere in this domain.
 
@@ -403,7 +422,7 @@ The first four come from your slide deck; the rest come up repeatedly elsewhere 
 
 **Example:** A database schema browsed via 30 `describe_table` calls.
 
-## Key terminology
+### Key terminology
 
 Short definitions to recognize instantly on the exam. The last column shows where each term is covered in depth.
 
